@@ -19,7 +19,32 @@ extern"C"
 //c lib
 #include<windows.h>
 
+struct PermissivePointer
+{
+	template <typename T>
+	operator T* () { return (T*)p; }
+	void* p;
+};
 
+template <auto F>
+using Functor = std::integral_constant<std::remove_reference_t<decltype(F)>, F>;
 
+template<class T, class DeleteFunction>
+struct AutoPtr
+{
+	AutoPtr() : ptr(nullptr) {}
+	AutoPtr(T* _ptr) : ptr(_ptr) {}
+	void operator=(T* _ptr) { this->ptr.reset(_ptr); }
+	operator T*() { return ptr.get(); }
+	T** operator&() { static_assert(sizeof(*this) == sizeof(void*)); assert(ptr); return (T**)this; }
+	T* operator->() { return ptr.get(); }
+	operator bool() { return ptr.get() != nullptr; }
+private:
+	struct DeletePtr { void operator()(void* _ptr) { DeleteFunction()(PermissivePointer{ this }); } };
+	std::unique_ptr<T, DeletePtr> ptr;
+};
+
+using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>>;
+using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>>;
 
 

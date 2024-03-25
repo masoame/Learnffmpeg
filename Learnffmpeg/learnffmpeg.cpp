@@ -41,13 +41,11 @@ bool LearnVideo::init_decode(AVMediaType avmediatype)
 bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_action)
 {
 	int err;
-	AVPacket* avp = av_packet_alloc();
-	AVFrame* avf = av_frame_alloc();
+	AutoAVPacketPtr avp = av_packet_alloc();
+	AutoAVFramePtr avf = av_frame_alloc();
 	while (true)
 	{
-		//读取包
 		err = av_read_frame(avfctx, avp);
-		//读取到包为音频包
 		if (avp->stream_index == AVMEDIA_TYPE_AUDIO)
 		{
 			av_packet_unref(avp);
@@ -55,22 +53,18 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 		}
 		else if (avp->stream_index == AVMEDIA_TYPE_VIDEO)
 		{
-			//读取到文件尾部 (avp的data和size为null)
 			if (err == AVERROR_EOF)
 			{
-				//冲刷解码器
 				avcodec_send_packet(decode_ctx, avp);
 				av_packet_unref(avp);
-
 				while (true)
 				{
 					err = avcodec_receive_frame(decode_ctx, avf);
 					if (err == AVERROR_EOF) { goto DecodeEND; }
 					else if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
-					else throw "unkonw error!!!!";
+					else return false;
 				}
 			}
-			//正常读取到包
 			else if (err == 0)
 			{
 				while ((err = avcodec_send_packet(decode_ctx, avp)) == AVERROR(EAGAIN)) { Sleep(10); }
@@ -85,12 +79,9 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 				}
 			}
 		}
-		//其他类型的包直接抛弃
 		else { av_packet_unref(avp); }
 	}
 	DecodeEND:
-	av_frame_free(&avf);
-	av_packet_free(&avp);
 	return true;
 }
 
