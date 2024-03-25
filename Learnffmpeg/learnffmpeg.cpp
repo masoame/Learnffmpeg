@@ -6,8 +6,6 @@ bool LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** 
 	avformat_find_stream_info(avfctx, nullptr);
 	//第二三参数直接输出在打印第一行，不影响AVFormatContext结构体信息
 	av_dump_format(avfctx, 0, url, false);
-
-	//std::cout << avfctx->duration/(AV_TIME_BASE/1000)/60000.0f << std::endl;
 	return true;
 }
 
@@ -19,22 +17,22 @@ bool LearnVideo::close()
 	return false;
 }
 //初始化解码器
-bool LearnVideo::init_video_decode(const AVCodec* codec)
+bool LearnVideo::init_decode(AVMediaType avmediatype)
 {
 	//为解码器分配空间
-	decode_ctx = avcodec_alloc_context3(codec);
+	decode_ctx = avcodec_alloc_context3(nullptr);
 	if (!decode_ctx) return false;
 	//遍历所有流找视频流
 	int num;
 	for (num = 0; num != avfctx->nb_streams; num++)
-		if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) break;
+		if (avfctx->streams[num]->codecpar->codec_type == avmediatype) break;
 	//有遍历完未有视频流
 	if (num == avfctx->nb_streams) return false;
 	//设置解码器信息
 	if (avcodec_parameters_to_context(decode_ctx, avfctx->streams[num]->codecpar) < 0)return false;
-	//寻找视频对应的编码
+	//寻找对应的编码
 	decodec = avcodec_find_decoder(decode_ctx->codec_id);
-	//设置视频编码
+	//设置编码
 	if(avcodec_open2(decode_ctx, decodec, NULL))return false;
 
 	return true;
@@ -45,7 +43,7 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 	int err;
 	AVPacket* avp = av_packet_alloc();
 	AVFrame* avf = av_frame_alloc();
-	for (bool read_end = true; read_end;)
+	while (true)
 	{
 		//读取包
 		err = av_read_frame(avfctx, avp);
@@ -55,49 +53,42 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 			av_packet_unref(avp);
 			continue;
 		}
-		//读取到文件尾部 (avp的data和size为null)
-		if (err == AVERROR_EOF)
+		else if (avp->stream_index == AVMEDIA_TYPE_VIDEO)
 		{
-			//冲刷解码器
-			err = avcodec_send_packet(decode_ctx, avp);
-			av_packet_unref(avp);
-
-			while (true)
+			//读取到文件尾部 (avp的data和size为null)
+			if (err == AVERROR_EOF)
 			{
-				err = avcodec_receive_frame(decode_ctx, avf);
+				//冲刷解码器
+				avcodec_send_packet(decode_ctx, avp);
+				av_packet_unref(avp);
 
-				if (err == AVERROR_EOF) { read_end = false; break; }
-				else if (err == 0)
+				while (true)
 				{
-					if (frame_action != nullptr) frame_action(avf);
+					err = avcodec_receive_frame(decode_ctx, avf);
+					if (err == AVERROR_EOF) { goto DecodeEND; }
+					else if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
+					else throw "unkonw error!!!!";
+				}
+			}
+			//正常读取到包
+			else if (err == 0)
+			{
+				while ((err = avcodec_send_packet(decode_ctx, avp)) == AVERROR(EAGAIN)) { Sleep(10); }
+				av_packet_unref(avp);
+				while (true)
+				{
+					err = avcodec_receive_frame(decode_ctx, avf);
+					if (err == AVERROR(EAGAIN)) break;
+					else if (err == AVERROR_EOF) { goto DecodeEND; }
+					else if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
+					else throw "unkonw error!!!!";
 				}
 			}
 		}
-		else if (err == 0)
-		{
-			while ((err = avcodec_send_packet(decode_ctx, avp)) == AVERROR(EAGAIN))
-			{
-				std::cout << "AVERROR(EAGAIN)" << std::endl;
-				Sleep(10);
-			}
-			av_packet_unref(avp);
-
-			while (true)
-			{
-				err = avcodec_receive_frame(decode_ctx, avf);
-				if (err == AVERROR(EAGAIN)) break;
-				else if (err == AVERROR_EOF) { read_end = false; break; }
-				else if (err == 0)
-				{
-					//got a frame after
-					if (frame_action != nullptr) frame_action(avf);
-					av_frame_unref(avf);
-				}
-				else throw "unkonw error!!!!";
-			}
-
-		}
+		//其他类型的包直接抛弃
+		else { av_packet_unref(avp); }
 	}
+	DecodeEND:
 	av_frame_free(&avf);
 	av_packet_free(&avp);
 	return true;
