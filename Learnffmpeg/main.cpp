@@ -6,11 +6,7 @@ int main()
 	LearnVideo v;
 	if (v.open("D:\\BaiduNetdiskDownload\\[ANi]  - 15 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4"))
 		if (v.init_decode())
-			v.start_video_decode([](AVFrame* avf)->bool
-				{
-					std::cout << "get frame!!!!" << std::endl;
-					return true;
-				});
-
+			v.close();
+	system("pause");
 
 }

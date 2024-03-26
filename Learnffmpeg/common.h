@@ -19,32 +19,30 @@ extern"C"
 //c lib
 #include<windows.h>
 
-struct PermissivePointer
-{
-	template <typename T>
-	operator T* () { return (T*)p; }
-	void* p;
-};
 
 template <auto F>
 using Functor = std::integral_constant<std::remove_reference_t<decltype(F)>, F>;
 
-template<class T, class DeleteFunction>
+template<class T, class DeleteFunction, bool isSecPtr = false>
 struct AutoPtr
 {
-	AutoPtr() : ptr(nullptr) {}
-	AutoPtr(T* _ptr) : ptr(_ptr) {}
+	AutoPtr() noexcept: ptr(nullptr) {}
+	AutoPtr(T* _ptr) noexcept : ptr(_ptr) {}
 	void operator=(T* _ptr) { this->ptr.reset(_ptr); }
-	operator T*() { return ptr.get(); }
+	operator T*() { return this->ptr.get(); }
 	T** operator&() { static_assert(sizeof(*this) == sizeof(void*)); assert(ptr); return (T**)this; }
-	T* operator->() { return ptr.get(); }
-	operator bool() { return ptr.get() != nullptr; }
+	T* operator->() { return this->ptr.get(); }
+	operator bool() { return this->ptr.get() != nullptr; }
 private:
-	struct DeletePtr { void operator()(void* _ptr) { DeleteFunction()(PermissivePointer{ this }); } };
+	struct DeletePrimaryPtr { void operator()(void* _ptr) { DeleteFunction()(static_cast<T*>(_ptr)); } };
+	struct DeleteSecPtr { void operator()(void* _ptr) { DeleteFunction()(reinterpret_cast<T**>(this)); } };
+	using DeletePtr = std::conditional<isSecPtr, DeleteSecPtr, DeletePrimaryPtr>::type;
 	std::unique_ptr<T, DeletePtr> ptr;
 };
 
-using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>>;
-using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>>;
+using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>, true>;
+using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
+using AutoAVCodecContextPtr = AutoPtr<AVCodecContext, Functor<avcodec_free_context>, true>;
+using AutoAVFormatContextPtr = AutoPtr<AVFormatContext, Functor<avformat_free_context>, false>;
 
 

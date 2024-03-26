@@ -5,7 +5,7 @@ class LearnVideo
 {
 public:
 	LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context";  };
-	~LearnVideo() { avformat_free_context(avfctx); avfctx = nullptr; };
+	~LearnVideo() {};
 	bool open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
 	bool close();
 	
@@ -22,8 +22,8 @@ public:
 
 	const AVFormatContext *  get_avfctx() { return avfctx; }
 private:
-	AVFormatContext* avfctx = nullptr;
-	AVCodecContext* decode_ctx = nullptr, * encode_ctx = nullptr;
+	AutoAVFormatContextPtr avfctx;
+	AutoAVCodecContextPtr decode_ctx, encode_ctx;
 	const AVCodec* decodec = nullptr, * encodec = nullptr;
 
 };
