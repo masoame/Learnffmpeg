@@ -4,14 +4,12 @@ bool LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** 
 {
 	if (avformat_open_input(&avfctx, url, fmt, options)) return false;
 	avformat_find_stream_info(avfctx, nullptr);
-	//第二三参数直接输出在打印第一行，不影响AVFormatContext结构体信息
 	av_dump_format(avfctx, 0, url, false);
 	return true;
 }
 
 bool LearnVideo::close()
 {
-	//释放编解码器上下文
 	avcodec_free_context(&this->decode_ctx);
 	avcodec_free_context(&this->encode_ctx);
 	return false;
@@ -49,7 +47,6 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 		if (avp->stream_index == AVMEDIA_TYPE_AUDIO)
 		{
 			av_packet_unref(avp);
-			continue;
 		}
 		else if (avp->stream_index == AVMEDIA_TYPE_VIDEO)
 		{
@@ -60,8 +57,8 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 				while (true)
 				{
 					err = avcodec_receive_frame(decode_ctx, avf);
-					if (err == AVERROR_EOF) { goto DecodeEND; }
-					else if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
+					if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
+					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return false;
 				}
 			}
@@ -72,10 +69,10 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 				while (true)
 				{
 					err = avcodec_receive_frame(decode_ctx, avf);
-					if (err == AVERROR(EAGAIN)) break;
+					if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
+					else if (err == AVERROR(EAGAIN)) break;
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
-					else if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
-					else throw "unkonw error!!!!";
+					else return false;
 				}
 			}
 		}

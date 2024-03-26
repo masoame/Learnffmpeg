@@ -23,7 +23,7 @@ public:
 	const AVFormatContext *  get_avfctx() { return avfctx; }
 private:
 	AVFormatContext* avfctx = nullptr;
-	AVCodecContext* decode_ctx = nullptr, * encode_ctx = nullptr;
+	AutoAVCodecContextPtr decode_ctx = nullptr, encode_ctx = nullptr;
 	const AVCodec* decodec = nullptr, * encodec = nullptr;
 
 };
