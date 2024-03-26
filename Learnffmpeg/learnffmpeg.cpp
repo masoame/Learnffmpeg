@@ -10,7 +10,7 @@ bool LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** 
 
 bool LearnVideo::close()
 {
-	decode_ctx = nullptr;
+	decode_video_ctx = nullptr;
 	encode_ctx = nullptr;
 
 	return false;
@@ -19,8 +19,8 @@ bool LearnVideo::close()
 bool LearnVideo::init_decode(AVMediaType avmediatype)
 {
 	//为解码器分配空间
-	decode_ctx = avcodec_alloc_context3(nullptr);
-	if (!decode_ctx) return false;
+	decode_video_ctx = avcodec_alloc_context3(nullptr);
+	if (!decode_video_ctx) return false;
 	//遍历所有流找视频流
 	int num;
 	for (num = 0; num != avfctx->nb_streams; num++)
@@ -28,11 +28,11 @@ bool LearnVideo::init_decode(AVMediaType avmediatype)
 	//有遍历完未有视频流
 	if (num == avfctx->nb_streams) return false;
 	//设置解码器信息
-	if (avcodec_parameters_to_context(decode_ctx, avfctx->streams[num]->codecpar) < 0)return false;
+	if (avcodec_parameters_to_context(decode_video_ctx, avfctx->streams[num]->codecpar) < 0)return false;
 	//寻找对应的编码
-	decodec = avcodec_find_decoder(decode_ctx->codec_id);
+	decode_video = avcodec_find_decoder(decode_video_ctx->codec_id);
 	//设置编码
-	if(avcodec_open2(decode_ctx, decodec, NULL))return false;
+	if(avcodec_open2(decode_video_ctx, decode_video, NULL))return false;
 
 	return true;
 }
@@ -53,11 +53,11 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 		{
 			if (err == AVERROR_EOF)
 			{
-				avcodec_send_packet(decode_ctx, avp);
+				avcodec_send_packet(decode_video_ctx, avp);
 				av_packet_unref(avp);
 				while (true)
 				{
-					err = avcodec_receive_frame(decode_ctx, avf);
+					err = avcodec_receive_frame(decode_video_ctx, avf);
 					if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return false;
@@ -65,11 +65,11 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 			}
 			else if (err == 0)
 			{
-				while ((err = avcodec_send_packet(decode_ctx, avp)) == AVERROR(EAGAIN)) { Sleep(10); }
+				while ((err = avcodec_send_packet(decode_video_ctx, avp)) == AVERROR(EAGAIN)) { Sleep(10); }
 				av_packet_unref(avp);
 				while (true)
 				{
-					err = avcodec_receive_frame(decode_ctx, avf);
+					err = avcodec_receive_frame(decode_video_ctx, avf);
 					if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
 					else if (err == AVERROR(EAGAIN)) break;
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
@@ -89,7 +89,7 @@ bool LearnVideo::init_video_encode(const enum AVCodecID encodeid,AVFrame* frame)
 	encode_ctx = avcodec_alloc_context3(encodec);
 	encode_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
 	encode_ctx->bit_rate = 400000;
-	encode_ctx->framerate = decode_ctx->framerate;
+	encode_ctx->framerate = decode_video_ctx->framerate;
 	encode_ctx->gop_size = 10;
 	encode_ctx->max_b_frames = 5;
 	encode_ctx->profile = FF_PROFILE_H264_MAIN;

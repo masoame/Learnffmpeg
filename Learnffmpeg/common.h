@@ -40,6 +40,7 @@ private:
 	std::unique_ptr<T, DeletePtr> ptr;
 };
 
+using AutoCloseHandlePtr = AutoPtr<void, Functor<CloseHandle>, false>;
 using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>, true>;
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
 using AutoAVCodecContextPtr = AutoPtr<AVCodecContext, Functor<avcodec_free_context>, true>;
