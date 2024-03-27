@@ -9,9 +9,8 @@ public:
 	bool open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
 	bool close();
 	
-	bool init_decode(AVMediaType avmediatype = AVMEDIA_TYPE_VIDEO);
-	bool start_video_decode(const std::function<bool(AVFrame*)>& frame_action = nullptr);
-	bool start_audio_decode(const std::function<bool(AVFrame*)>& frame_action = nullptr);
+	bool init_video_decode();
+	bool start_video_decode(const std::function<bool(AVFrame*)>& video_action = nullptr, const std::function<bool(AVFrame*)>& audio_action = nullptr);
 
 
 	bool init_video_encode(const enum AVCodecID encodeid, AVFrame* frame);
@@ -24,6 +23,8 @@ public:
 private:
 	AutoAVFormatContextPtr avfctx;
 	AutoAVCodecContextPtr decode_video_ctx, decode_audio_ctx, encode_ctx;
-	const AVCodec* decode_video = nullptr, * encodec = nullptr;
+	AutoSwrContextPtr swr_ctx;
+
+	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 
 };

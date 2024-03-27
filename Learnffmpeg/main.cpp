@@ -5,8 +5,16 @@ int main()
 {
 	LearnVideo v;
 	if (v.open("D:\\BaiduNetdiskDownload\\[ANi]  - 15 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4"))
-		if (v.init_decode())
-			v.start_video_decode();
+		if (v.init_video_decode())
+			v.start_video_decode(
+				[](AVFrame* avf)->bool
+				{
+					return true;
+				},
+				[](AVFrame* avf)->bool
+				{
+					return true;
+				});
 	system("pause");
 
 }

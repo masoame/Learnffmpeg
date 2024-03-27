@@ -8,6 +8,8 @@ extern"C"
 #include<libswscale/swscale.h>
 #include<libavfilter/avfilter.h>
 #include<libavutil/avutil.h>
+#include<libswresample/swresample.h>
+#include <libavutil/channel_layout.h>
 }
 //opencv
 #include<opencv2/opencv.hpp>
@@ -45,5 +47,5 @@ using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>, true>;
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
 using AutoAVCodecContextPtr = AutoPtr<AVCodecContext, Functor<avcodec_free_context>, true>;
 using AutoAVFormatContextPtr = AutoPtr<AVFormatContext, Functor<avformat_free_context>, false>;
-
+using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>,true>;
 

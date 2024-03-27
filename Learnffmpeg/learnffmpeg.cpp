@@ -16,61 +16,73 @@ bool LearnVideo::close()
 	return false;
 }
 //初始化解码器
-bool LearnVideo::init_decode(AVMediaType avmediatype)
+bool LearnVideo::init_video_decode()
 {
-	//为解码器分配空间
+	//为画面和音频解码器分配空间
 	decode_video_ctx = avcodec_alloc_context3(nullptr);
-	if (!decode_video_ctx) return false;
+	decode_audio_ctx = avcodec_alloc_context3(nullptr);
+
+	if (!decode_video_ctx || !decode_audio_ctx) return false;
 	//遍历所有流找视频流
 	int num;
 	for (num = 0; num != avfctx->nb_streams; num++)
-		if (avfctx->streams[num]->codecpar->codec_type == avmediatype) break;
-	//有遍历完未有视频流
-	if (num == avfctx->nb_streams) return false;
-	//设置解码器信息
-	if (avcodec_parameters_to_context(decode_video_ctx, avfctx->streams[num]->codecpar) < 0)return false;
-	//寻找对应的编码
-	decode_video = avcodec_find_decoder(decode_video_ctx->codec_id);
-	//设置编码
-	if(avcodec_open2(decode_video_ctx, decode_video, NULL))return false;
+	{
+		if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+		{
+			if (avcodec_parameters_to_context(decode_video_ctx, avfctx->streams[num]->codecpar) < 0)return false;
+			decode_video = avcodec_find_decoder(decode_video_ctx->codec_id);
+			if (avcodec_open2(decode_video_ctx, decode_video, NULL))return false;
+		}
+		else if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
+		{
+			if (avcodec_parameters_to_context(decode_audio_ctx, avfctx->streams[num]->codecpar) < 0)return false;
+			decode_audio = avcodec_find_decoder(decode_audio_ctx->codec_id);
+			if (avcodec_open2(decode_audio_ctx, decode_audio, NULL))return false;
+		}
+	}
+
+
 
 	return true;
 }
 
-bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_action)
+bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& video_action, const std::function<bool(AVFrame*)>& audio_action)
 {
 	int err;
 	AutoAVPacketPtr avp = av_packet_alloc();
 	AutoAVFramePtr avf = av_frame_alloc();
+
+	const std::function<bool(AVFrame*)>* frame_action;
+	AVCodecContext* decode_ctx=nullptr;
+
 	while (true)
 	{
 		err = av_read_frame(avfctx, avp);
-		if (avp->stream_index == AVMEDIA_TYPE_AUDIO)
+		if (avp->stream_index == AVMEDIA_TYPE_VIDEO || avp->stream_index == AVMEDIA_TYPE_AUDIO)
 		{
-			av_packet_unref(avp);
-		}
-		else if (avp->stream_index == AVMEDIA_TYPE_VIDEO)
-		{
+			if (avp->stream_index == AVMEDIA_TYPE_VIDEO) { decode_ctx = decode_video_ctx; frame_action = &video_action; }
+			else { decode_ctx = decode_audio_ctx; frame_action = &audio_action;}
+
 			if (err == AVERROR_EOF)
 			{
-				avcodec_send_packet(decode_video_ctx, avp);
+				avcodec_send_packet(decode_ctx, avp);
 				av_packet_unref(avp);
 				while (true)
 				{
-					err = avcodec_receive_frame(decode_video_ctx, avf);
-					if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
+					err = avcodec_receive_frame(decode_ctx, avf);
+					if (err == 0) { if (*frame_action != nullptr) (*frame_action)(avf); }
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return false;
 				}
 			}
 			else if (err == 0)
 			{
-				while ((err = avcodec_send_packet(decode_video_ctx, avp)) == AVERROR(EAGAIN)) { Sleep(10); }
+				while ((err = avcodec_send_packet(decode_ctx, avp)) == AVERROR(EAGAIN)) { Sleep(10); }
 				av_packet_unref(avp);
 				while (true)
 				{
-					err = avcodec_receive_frame(decode_video_ctx, avf);
-					if (err == 0) { if (frame_action != nullptr) frame_action(avf); }
+					err = avcodec_receive_frame(decode_ctx, avf);
+					if (err == 0) { if (frame_action != nullptr) (*frame_action)(avf); }
 					else if (err == AVERROR(EAGAIN)) break;
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return false;
@@ -82,6 +94,7 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& frame_a
 	DecodeEND:
 	return true;
 }
+
 
 bool LearnVideo::init_video_encode(const enum AVCodecID encodeid,AVFrame* frame)
 {
