@@ -17,6 +17,7 @@ extern"C"
 //c plus plus lib
 #include<iostream>
 #include<functional>
+#include<initializer_list>
 
 //c lib
 #include<windows.h>
@@ -25,16 +26,21 @@ extern"C"
 template <auto F>
 using Functor = std::integral_constant<std::remove_reference_t<decltype(F)>, F>;
 
-template<class T, class DeleteFunction, bool isSecPtr = false>
+template<class T = void, class DeleteFunction= Functor<CloseHandle>, bool isSecPtr = false>
 struct AutoPtr
 {
 	AutoPtr() noexcept: ptr(nullptr) {}
 	AutoPtr(T* _ptr) noexcept : ptr(_ptr) {}
-	void operator=(T* _ptr) { this->ptr.reset(_ptr); }
+	//explicit AutoPtr(AutoPtr&& Autoptr) noexcept : ptr(Autoptr.release()) {}
+
 	operator T*() { return this->ptr.get(); }
+	operator bool() { return this->ptr.get() != nullptr; }
+
 	T** operator&() { static_assert(sizeof(*this) == sizeof(void*)); assert(ptr); return (T**)this; }
 	T* operator->() { return this->ptr.get(); }
-	operator bool() { return this->ptr.get() != nullptr; }
+	void operator=(T* _ptr) { this->ptr.reset(_ptr); }
+
+	//T* release() { return ptr.release(); }
 private:
 	struct DeletePrimaryPtr { void operator()(void* _ptr) { DeleteFunction()(static_cast<T*>(_ptr)); } };
 	struct DeleteSecPtr { void operator()(void* _ptr) { DeleteFunction()(reinterpret_cast<T**>(this)); } };
@@ -42,10 +48,10 @@ private:
 	std::unique_ptr<T, DeletePtr> ptr;
 };
 
-using AutoCloseHandlePtr = AutoPtr<void, Functor<CloseHandle>, false>;
 using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>, true>;
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
 using AutoAVCodecContextPtr = AutoPtr<AVCodecContext, Functor<avcodec_free_context>, true>;
 using AutoAVFormatContextPtr = AutoPtr<AVFormatContext, Functor<avformat_free_context>, false>;
+using AutoSwsContextPtr = AutoPtr<SwsContext, Functor<sws_freeContext>, false>;
 using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>,true>;
 

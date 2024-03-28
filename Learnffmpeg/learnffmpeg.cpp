@@ -5,45 +5,68 @@ bool LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** 
 	if (avformat_open_input(&avfctx, url, fmt, options)) return false;
 	avformat_find_stream_info(avfctx, nullptr);
 	av_dump_format(avfctx, 0, url, false);
+
+	//不知为何一些视频的封面也会被认为是AVMEDIA_TYPE_VIDEO类型，这里只取得第一个流作为视频流
+	for (int num = 0; num != avfctx->nb_streams; num++)
+	{
+		if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && !video_stream)
+			this->video_stream = avfctx->streams[num];
+		else if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO && !audio_stream)
+			this->audio_stream = avfctx->streams[num];
+	}
+
+
 	return true;
 }
 
 bool LearnVideo::close()
 {
 	decode_video_ctx = nullptr;
-	encode_ctx = nullptr;
+	encode_video_ctx = nullptr;
 
 	return false;
 }
 //初始化解码器
-bool LearnVideo::init_video_decode()
+bool LearnVideo::init_decode()
 {
 	//为画面和音频解码器分配空间
-	decode_video_ctx = avcodec_alloc_context3(nullptr);
 	decode_audio_ctx = avcodec_alloc_context3(nullptr);
+	decode_video_ctx = avcodec_alloc_context3(nullptr);
+
 
 	if (!decode_video_ctx || !decode_audio_ctx) return false;
 	//遍历所有流找视频流
-	int num;
-	for (num = 0; num != avfctx->nb_streams; num++)
+
+	if (video_stream != nullptr)
 	{
-		if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-		{
-			if (avcodec_parameters_to_context(decode_video_ctx, avfctx->streams[num]->codecpar) < 0)return false;
-			decode_video = avcodec_find_decoder(decode_video_ctx->codec_id);
-			if (avcodec_open2(decode_video_ctx, decode_video, NULL))return false;
-		}
-		else if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
-		{
-			if (avcodec_parameters_to_context(decode_audio_ctx, avfctx->streams[num]->codecpar) < 0)return false;
-			decode_audio = avcodec_find_decoder(decode_audio_ctx->codec_id);
-			if (avcodec_open2(decode_audio_ctx, decode_audio, NULL))return false;
-		}
+		if (avcodec_parameters_to_context(decode_video_ctx, video_stream->codecpar) < 0)return false;
+		decode_video = avcodec_find_decoder(decode_video_ctx->codec_id);
+		if (avcodec_open2(decode_video_ctx, decode_video, NULL))return false;
 	}
-
-
-
+	if (audio_stream != nullptr)
+	{
+		if (avcodec_parameters_to_context(decode_audio_ctx, audio_stream->codecpar) < 0)return false;
+		decode_audio = avcodec_find_decoder(decode_audio_ctx->codec_id);
+		if (avcodec_open2(decode_audio_ctx, decode_audio, NULL))return false;
+	}
 	return true;
+}
+
+bool LearnVideo::init_swr(const AVChannelLayout* out_ch_layout,const enum AVSampleFormat out_sample_fmt,const int out_sample_rate)
+{
+	swr_ctx = swr_alloc();
+	swr_alloc_set_opts2(&swr_ctx, out_ch_layout, out_sample_fmt, out_sample_rate, decode_audio->ch_layouts, *decode_audio->sample_fmts, *decode_audio->supported_samplerates, 0, nullptr);
+	swr_init(swr_ctx);
+	return swr_ctx;
+}
+
+bool LearnVideo::init_sws(const AVFrame* avf, const AVPixelFormat dstFormat,const int dstW,const int dstH)
+{
+	if (dstW == 0 || dstH == 0)
+		sws_ctx = sws_getContext(avf->width, avf->height, (AVPixelFormat)avf->format, avf->width, avf->height, dstFormat, SWS_FAST_BILINEAR, nullptr, nullptr, 0);
+	else 
+		sws_ctx = sws_getContext(avf->width, avf->height, (AVPixelFormat)avf->format, dstW, dstH, dstFormat, SWS_FAST_BILINEAR, nullptr, nullptr, 0);
+	return sws_ctx;
 }
 
 bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& video_action, const std::function<bool(AVFrame*)>& audio_action)
@@ -53,7 +76,7 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& video_a
 	AutoAVFramePtr avf = av_frame_alloc();
 
 	const std::function<bool(AVFrame*)>* frame_action;
-	AVCodecContext* decode_ctx=nullptr;
+	AVCodecContext* decode_ctx = nullptr;
 
 	while (true)
 	{
@@ -81,8 +104,9 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& video_a
 				av_packet_unref(avp);
 				while (true)
 				{
+					AVERROR(ENOMEM);
 					err = avcodec_receive_frame(decode_ctx, avf);
-					if (err == 0) { if (frame_action != nullptr) (*frame_action)(avf); }
+					if (err == 0) { if (*frame_action != nullptr) (*frame_action)(avf); }
 					else if (err == AVERROR(EAGAIN)) break;
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return false;
@@ -96,35 +120,9 @@ bool LearnVideo::start_video_decode(const std::function<bool(AVFrame*)>& video_a
 }
 
 
-bool LearnVideo::init_video_encode(const enum AVCodecID encodeid,AVFrame* frame)
+bool LearnVideo::init_encode(const enum AVCodecID encodeid,AVFrame* frame)
 {
-	encodec = avcodec_find_encoder(encodeid);
-	encode_ctx = avcodec_alloc_context3(encodec);
-	encode_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
-	encode_ctx->bit_rate = 400000;
-	encode_ctx->framerate = decode_video_ctx->framerate;
-	encode_ctx->gop_size = 10;
-	encode_ctx->max_b_frames = 5;
-	encode_ctx->profile = FF_PROFILE_H264_MAIN;
 
-	//编码器的时间基要取 AVFrame 的时间基，因为 AVFrame 是输入。
-	encode_ctx->time_base = avfctx->streams[0]->time_base;
-	encode_ctx->width = avfctx->streams[0]->codecpar->width;
-	encode_ctx->height = avfctx->streams[0]->codecpar->height;
-	encode_ctx->sample_aspect_ratio = frame->sample_aspect_ratio;
-	encode_ctx->pix_fmt = (AVPixelFormat)frame->format;
-	encode_ctx->color_range = frame->color_range;
-	encode_ctx->color_primaries = frame->color_primaries;
-	encode_ctx->color_trc = frame->color_trc;
-	encode_ctx->colorspace = frame->colorspace;
-	encode_ctx->chroma_sample_location = frame->chroma_location;
-
-	encode_ctx->field_order = AV_FIELD_PROGRESSIVE;
-	int err;
-	if ((err = avcodec_open2(encode_ctx, encodec, NULL)) < 0) {
-		std::cout << "open codec faile " << err << std::endl;
-		return false;
-	}
 	return true;
 }
 
@@ -132,14 +130,14 @@ bool LearnVideo::start_video_encode(const AVFrame* frame)
 {
 	AVPacket* pkt_out = av_packet_alloc();
 	//往编码器发送 AVFrame，然后不断读取 AVPacket
-	int ret = avcodec_send_frame(encode_ctx, frame);
+	int ret = avcodec_send_frame(encode_video_ctx, frame);
 	if (ret < 0) {
 		printf("avcodec_send_frame fail %d \n", ret);
 		return ret;
 	}
 	while(true) 
 	{
-		ret = avcodec_receive_packet(encode_ctx, pkt_out);
+		ret = avcodec_receive_packet(encode_video_ctx, pkt_out);
 		if (ret == AVERROR(EAGAIN)) {
 			break;
 		}
@@ -157,22 +155,7 @@ bool LearnVideo::start_video_encode(const AVFrame* frame)
 	return false;
 }
 
-std::unique_ptr<unsigned char[]> LearnVideo::YUV2RGB(const AVFrame* avf,const char* filepath,AVPixelFormat dstFormat)
+void LearnVideo::start_sws(const AVFrame* src_avf, Channel_Planes* dst_ch)
 {
-	const int RBG_size = avf->width * avf->height * 3;
-	std::unique_ptr<unsigned char[]> buf{new unsigned char[RBG_size] {0}};
-
-	//创建转换上下文
-	SwsContext* swsc = sws_getContext(avf->width, avf->height, (AVPixelFormat)avf->format, avf->width, avf->height, dstFormat, SWS_FAST_BILINEAR, nullptr, nullptr, 0);
-	uint8_t* data[AV_NUM_DATA_POINTERS] = { 0 };
-	//设置RGB通道
-	data[0] = buf.get();
-	int lines[AV_NUM_DATA_POINTERS] = { 0 };
-	//设置通道大小
-	lines[0] = avf->width * 3;
-	//开始转换
-	sws_scale(swsc, avf->data, avf->linesize, 0, avf->height, data, lines);
-
-	sws_freeContext(swsc);
-	return buf;
+	sws_scale(sws_ctx, src_avf->data, src_avf->linesize, 0, src_avf->height, dst_ch->data(), dst_ch->linesize);
 }
