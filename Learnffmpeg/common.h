@@ -14,6 +14,10 @@ extern"C"
 //opencv
 #include<opencv2/opencv.hpp>
 
+//opengl
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
+
 //c plus plus lib
 #include<iostream>
 #include<functional>

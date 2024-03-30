@@ -13,6 +13,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="源文件\glad">
+      <UniqueIdentifier>{e917ee22-9d9e-440c-8676-fa9f1bd47649}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -21,12 +24,21 @@
     <ClCompile Include="learnffmpeg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="learnopengl.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="gl.c">
+      <Filter>源文件\glad</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="learnffmpeg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="learnopengl.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

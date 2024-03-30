@@ -15,7 +15,6 @@ bool LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** 
 			this->audio_stream = avfctx->streams[num];
 	}
 
-
 	return true;
 }
 
@@ -26,16 +25,17 @@ bool LearnVideo::close()
 
 	return false;
 }
+bool LearnVideo::init()
+{
+	return init_decode();
+}
 //初始化解码器
 bool LearnVideo::init_decode()
 {
-	//为画面和音频解码器分配空间
 	decode_audio_ctx = avcodec_alloc_context3(nullptr);
 	decode_video_ctx = avcodec_alloc_context3(nullptr);
 
-
 	if (!decode_video_ctx || !decode_audio_ctx) return false;
-	//遍历所有流找视频流
 
 	if (video_stream != nullptr)
 	{
