@@ -16,7 +16,10 @@ extern"C"
 
 //opengl
 #include <glad/gl.h>
+#include<glad/glx.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+
 
 //c plus plus lib
 #include<iostream>
