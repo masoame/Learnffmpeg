@@ -60,5 +60,5 @@ private:
 	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 
 	//用于引用avfctx的音频与视频流
-	const AVStream* video_stream = nullptr, * audio_stream = nullptr;
+	int AVStreamIndex[8];
 };

@@ -7,9 +7,7 @@ public:
 	LearnOpengl(const char* title, int width = 0, int height = 0);
 	bool GLFWStartWindow();
 
-
 private:
-
 
 	GLFWwindow* glfw_win = nullptr;
 

@@ -1,5 +1,7 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS 
+
 //ffmpeg
 extern"C"
 {
@@ -16,7 +18,6 @@ extern"C"
 
 //opengl
 #include <glad/gl.h>
-#include<glad/glx.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
@@ -27,7 +28,18 @@ extern"C"
 #include<initializer_list>
 
 //c lib
+#include<WinSock2.h>
 #include<windows.h>
+
+//SDL
+extern"C"
+{
+#include<SDL.h>
+#include<SDL_main.h>
+}
+
+
+#pragma comment(lib,"Ws2_32.lib")
 
 
 template <auto F>

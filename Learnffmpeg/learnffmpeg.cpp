@@ -6,14 +6,8 @@ bool LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** 
 	avformat_find_stream_info(avfctx, nullptr);
 	av_dump_format(avfctx, 0, url, false);
 
-	//不知为何一些视频的封面也会被认为是AVMEDIA_TYPE_VIDEO类型，这里只取得第一个流作为视频流
-	for (int num = 0; num != avfctx->nb_streams; num++)
-	{
-		if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && !video_stream)
-			this->video_stream = avfctx->streams[num];
-		else if (avfctx->streams[num]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO && !audio_stream)
-			this->audio_stream = avfctx->streams[num];
-	}
+	AVStreamIndex[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(avfctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+	AVStreamIndex[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(avfctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
 
 	return true;
 }
@@ -37,15 +31,16 @@ bool LearnVideo::init_decode()
 
 	if (!decode_video_ctx || !decode_audio_ctx) return false;
 
-	if (video_stream != nullptr)
+	if(AVStreamIndex[AVMEDIA_TYPE_VIDEO]!= AVERROR_STREAM_NOT_FOUND)
 	{
-		if (avcodec_parameters_to_context(decode_video_ctx, video_stream->codecpar) < 0)return false;
+		if (avcodec_parameters_to_context(decode_video_ctx, avfctx->streams[AVStreamIndex[AVMEDIA_TYPE_VIDEO]]->codecpar) < 0)return false;
 		decode_video = avcodec_find_decoder(decode_video_ctx->codec_id);
 		if (avcodec_open2(decode_video_ctx, decode_video, NULL))return false;
 	}
-	if (audio_stream != nullptr)
+
+	if (AVStreamIndex[AVMEDIA_TYPE_AUDIO] != AVERROR_STREAM_NOT_FOUND)
 	{
-		if (avcodec_parameters_to_context(decode_audio_ctx, audio_stream->codecpar) < 0)return false;
+		if (avcodec_parameters_to_context(decode_audio_ctx, avfctx->streams[AVStreamIndex[AVMEDIA_TYPE_AUDIO]]->codecpar) < 0)return false;
 		decode_audio = avcodec_find_decoder(decode_audio_ctx->codec_id);
 		if (avcodec_open2(decode_audio_ctx, decode_audio, NULL))return false;
 	}

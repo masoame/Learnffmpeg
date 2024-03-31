@@ -11,6 +11,7 @@ LearnOpengl::LearnOpengl(const char* title,int width, int height)
 	//获得显示器信息
 	monitors = glfwGetMonitors(&monitors_count);
 
+	//创建窗口
 	if (width && height)
 		glfw_win = glfwCreateWindow(width, height, title, nullptr, nullptr);
 	else
@@ -24,9 +25,6 @@ LearnOpengl::LearnOpengl(const char* title,int width, int height)
 
 	//初始化glad需要在绑定本地线程之后进行
 	if (!gladLoadGL(glfwGetProcAddress))
-	{
-		std::cout << "Failed to initialize GLAD" << std::endl;
-	}
 
 	glfwSwapInterval(1);
 
@@ -34,11 +32,13 @@ LearnOpengl::LearnOpengl(const char* title,int width, int height)
 
 bool LearnOpengl::GLFWStartWindow()
 {
-	while (true)
+	while (!glfwWindowShouldClose(glfw_win))
 	{
 		glfwSwapBuffers(glfw_win);
 		glfwPollEvents();
 	}
+	glfwDestroyWindow(glfw_win);
+	glfwTerminate();
 	return true;
 }
 
