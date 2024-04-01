@@ -3,6 +3,13 @@
 bool LearnSDL::isInitAudio = false;
 
 
+void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)
+{
+	memset(stream, 0, len);
+
+	return;
+}
+
 void LearnSDL::InitAudio(AVFrame* avf, SDL_AudioCallback callback)
 {
 	if (isInitAudio)return;
@@ -13,10 +20,11 @@ void LearnSDL::InitAudio(AVFrame* avf, SDL_AudioCallback callback)
 	sdl_audio.samples = avf->nb_samples;
 	sdl_audio.freq = avf->sample_rate;
 	sdl_audio.callback = callback;
-
+	//sdl_audio.format=
 	if (SDL_OpenAudio(&sdl_audio, nullptr))
 	{
-		std::cout << "audio open fail !!!!" << std::endl;
+		
+		std::cout << "audio open failed !!!!" << std::endl;
 	}
 
 

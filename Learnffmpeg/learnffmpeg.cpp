@@ -23,7 +23,7 @@ bool LearnVideo::init()
 {
 	return init_decode();
 }
-//³õÊ¼»¯½âÂëÆ÷
+
 bool LearnVideo::init_decode()
 {
 	decode_audio_ctx = avcodec_alloc_context3(nullptr);

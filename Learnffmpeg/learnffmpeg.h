@@ -14,7 +14,7 @@ struct Channel_Planes
 		}
 	}
 	constexpr uint8_t* const* data() { return (uint8_t* const*)_data; }
-	//通道数据指针
+	//通道数据指针(AVFrame默认有八个通道)
 	std::unique_ptr<uint8_t[]> _data[AV_NUM_DATA_POINTERS]{ nullptr };
 	//每个通道大小数组
 	int linesize[AV_NUM_DATA_POINTERS]{ 0 };
@@ -46,9 +46,7 @@ public:
 	//音视频编码
 	bool init_encode(const enum AVCodecID encodeid, AVFrame* frame);
 	bool start_video_encode(const AVFrame* frame);
-	//
 
-	//
 	const AVFormatContext *  get_avfctx() { return avfctx; }
 private:
 
@@ -59,6 +57,14 @@ private:
 
 	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 
-	//用于引用avfctx的音频与视频流
+	//用于引用avfctx的音频与视频流的下标
 	int AVStreamIndex[8];
+
+	//音频缓存队列以及音频锁
+	std::queue<std::unique_ptr<char[]>> audio_queue;
+	std::mutex audio_queue_mtx;
+
+	std::queue<Channel_Planes> video_queue;
+	std::mutex video_queue_mtx;
+	
 };
