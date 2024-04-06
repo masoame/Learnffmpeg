@@ -1,5 +1,6 @@
 #pragma once
 #include"common.hpp"
+#include <concurrent_queue.h>
 
 struct Clannel_AVFrame
 {
@@ -55,6 +56,6 @@ private:
 	int AVStreamIndex[6];
 
 	//音频缓存队列以及音频锁 FrameQueue[AVMediaType]
-	std::queue<AutoAVFramePtr> FrameQueue[6];
+	Concurrency::concurrent_queue<AutoAVFramePtr> FrameQueue[6];
 	std::mutex FrameQueue_mtx[6];
 };

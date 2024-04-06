@@ -25,6 +25,7 @@ extern"C"
 #include<functional>
 #include<initializer_list>
 #include<type_traits>
+#include<concurrent_queue.h>
 
 //c lib
 #include<WinSock2.h>
@@ -47,11 +48,13 @@ template<class T = void, class DeleteFunction = Functor<CloseHandle>, bool isSec
 struct AutoPtr
 {
 	AutoPtr() noexcept : ptr(nullptr) {}
-	explicit AutoPtr(const AutoPtr& Autoptr) = delete;
-	explicit AutoPtr(AutoPtr&& Autoptr) noexcept : ptr(Autoptr.release()) { std::cout << "&&" << std::endl; }
+	explicit AutoPtr(AutoPtr& Autoptr) = delete;
+	explicit AutoPtr(AutoPtr&& Autoptr) noexcept : ptr(Autoptr.release()) {}
 	AutoPtr(T* _ptr) noexcept : ptr(_ptr) {}
 
 	void operator=(T* _ptr) { this->ptr.reset(_ptr); }
+	void operator=(AutoPtr&& Autoptr) { this->ptr.reset(Autoptr.release()); }
+	AutoPtr& operator=(AutoPtr& Autoptr) { return Autoptr; }
 
 	operator T* () const { return this->ptr.get(); }
 	operator bool() const { return this->ptr.get() != nullptr; }

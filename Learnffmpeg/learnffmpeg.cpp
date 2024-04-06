@@ -67,8 +67,6 @@ LearnVideo::RESULT LearnVideo::start_video_decode()
 	AutoAVPacketPtr avp = av_packet_alloc();
 	AutoAVFramePtr avf = av_frame_alloc();
 
-	backcall_avframe frame_action;
-
 	while (true)
 	{
 		err = av_read_frame(avfctx, avp);
@@ -83,7 +81,7 @@ LearnVideo::RESULT LearnVideo::start_video_decode()
 				while (true)
 				{
 					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { FrameQueue[index].emplace(std::move(avf)); }
+					if (err == 0) { FrameQueue[index].push(std::move(avf)); }
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return UNKONW_ERROR;
 				}
@@ -96,7 +94,7 @@ LearnVideo::RESULT LearnVideo::start_video_decode()
 				{
 					AVERROR(ENOMEM);
 					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { FrameQueue[index].emplace(std::move(avf)); std::cout << "+1" << std::endl; }
+					if (err == 0) { FrameQueue[index].push(std::move(avf)); }
 					else if (err == AVERROR(EAGAIN)) break;
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return UNKONW_ERROR;
