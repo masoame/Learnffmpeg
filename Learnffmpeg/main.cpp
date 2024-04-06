@@ -9,6 +9,5 @@ int main(int argc, char* args[])
 	err = LV.init_decode();
 	if (err != LearnVideo::SUCCESS) return -1;
 	LV.start_video_decode();
-
 	return 0;
 }

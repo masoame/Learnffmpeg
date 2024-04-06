@@ -81,7 +81,7 @@ LearnVideo::RESULT LearnVideo::start_video_decode()
 				while (true)
 				{
 					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { FrameQueue[index].push(std::move(avf)); }
+					if (err == 0) { FrameQueue[index].push(std::move(avf).release()); }
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return UNKONW_ERROR;
 				}
@@ -94,7 +94,7 @@ LearnVideo::RESULT LearnVideo::start_video_decode()
 				{
 					AVERROR(ENOMEM);
 					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { FrameQueue[index].push(std::move(avf)); }
+					if (err == 0) { FrameQueue[index].push(std::move(avf).release()); }
 					else if (err == AVERROR(EAGAIN)) break;
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return UNKONW_ERROR;

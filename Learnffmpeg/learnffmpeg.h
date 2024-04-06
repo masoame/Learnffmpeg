@@ -16,8 +16,11 @@ public:
 		SUCCESS, UNKONW_ERROR, ARGS_ERROR,
 		ALLOC_ERROR, OPEN_ERROR
 	};
-
-	using backcall_avframe = bool(*)(AutoAVFramePtr&&);
+	/*
+	* 
+	* 
+	* 
+	*/
 	LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
 	~LearnVideo() {};
 	RESULT open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
@@ -38,7 +41,9 @@ public:
 	RESULT start_video_decode();
 	//音视频编码
 	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
-	//
+	/*
+	* 开始解码
+	*/
 	RESULT start_video_encode(const AVFrame* frame);
 
 	const AVFormatContext* get_avfctx() { return avfctx; }
@@ -55,7 +60,11 @@ private:
 	//用于引用avfctx的音频与视频流的下标
 	int AVStreamIndex[6];
 
-	//音频缓存队列以及音频锁 FrameQueue[AVMediaType]
-	Concurrency::concurrent_queue<AutoAVFramePtr> FrameQueue[6];
-	std::mutex FrameQueue_mtx[6];
+
+	/*
+	* 音频缓存队列以及音频锁 FrameQueue[AVMediaType] 使用并发队列()
+	* 使用裸指针主要是因为容器try_pop是进行内存拷贝，不走构造函数
+	* 接受指针时请使用智能指针 AutoAVFramePtr
+	*/
+	Concurrency::concurrent_queue<AVFrame*> FrameQueue[6];
 };
