@@ -8,7 +8,4 @@ public:
 	static void InitAudio(AVFrame* avf, SDL_AudioCallback callback);
 private:
 	static bool isInitAudio;
-
-
-
 };

@@ -1,7 +1,6 @@
 #include"learnopengl.h"
 
-
-LearnOpengl::LearnOpengl(const char* title,int width, int height)
+LearnOpengl::LearnOpengl(const char* title, int width, int height)
 {
 	//初始化glfw
 	if (glfwInit() == GLFW_FALSE) return;
@@ -18,7 +17,7 @@ LearnOpengl::LearnOpengl(const char* title,int width, int height)
 	{
 		int xpos, ypos, width, height;
 		glfwGetMonitorWorkarea(monitors[0], &xpos, &ypos, &width, &height);
-		glfw_win = glfwCreateWindow(width/2, height/2, title,nullptr , nullptr);
+		glfw_win = glfwCreateWindow(width / 2, height / 2, title, nullptr, nullptr);
 	}
 
 	glfwMakeContextCurrent(glfw_win);
@@ -26,8 +25,7 @@ LearnOpengl::LearnOpengl(const char* title,int width, int height)
 	//初始化glad需要在绑定本地线程之后进行
 	if (!gladLoadGL(glfwGetProcAddress))
 
-	glfwSwapInterval(1);
-
+		glfwSwapInterval(1);
 }
 
 bool LearnOpengl::GLFWStartWindow()
@@ -41,8 +39,3 @@ bool LearnOpengl::GLFWStartWindow()
 	glfwTerminate();
 	return true;
 }
-
-
-
-
-

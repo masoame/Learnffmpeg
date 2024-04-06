@@ -2,11 +2,9 @@
 
 bool LearnSDL::isInitAudio = false;
 
-
 void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)
 {
 	memset(stream, 0, len);
-
 
 	return;
 }
@@ -26,6 +24,4 @@ void LearnSDL::InitAudio(AVFrame* avf, SDL_AudioCallback callback)
 	{
 		std::cout << "audio open failed !!!!" << std::endl;
 	}
-
-
 }

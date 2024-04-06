@@ -1,5 +1,5 @@
 #pragma once
-#define _WINSOCK_DEPRECATED_NO_WARNINGS 
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 //ffmpeg
 extern"C"
@@ -20,11 +20,11 @@ extern"C"
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-
 //c plus plus lib
 #include<iostream>
 #include<functional>
 #include<initializer_list>
+#include<type_traits>
 
 //c lib
 #include<WinSock2.h>
@@ -37,26 +37,27 @@ extern"C"
 #include<SDL_main.h>
 }
 
-
 #pragma comment(lib,"Ws2_32.lib")
 
 //定义RAII内存回收
 template <auto F>
 using Functor = std::integral_constant<std::remove_reference_t<decltype(F)>, F>;
 
-template<class T = void, class DeleteFunction= Functor<CloseHandle>, bool isSecPtr = false>
+template<class T = void, class DeleteFunction = Functor<CloseHandle>, bool isSecPtr = false>
 struct AutoPtr
 {
-	AutoPtr() noexcept: ptr(nullptr) {}
+	AutoPtr() noexcept : ptr(nullptr) {}
+	explicit AutoPtr(const AutoPtr& Autoptr) = delete;
+	explicit AutoPtr(AutoPtr&& Autoptr) noexcept : ptr(Autoptr.release()) { std::cout << "&&" << std::endl; }
 	AutoPtr(T* _ptr) noexcept : ptr(_ptr) {}
-	explicit AutoPtr(AutoPtr&& Autoptr) noexcept : ptr(Autoptr.release()) {}
 
-	operator T*() const { return this->ptr.get(); }
+	void operator=(T* _ptr) { this->ptr.reset(_ptr); }
+
+	operator T* () const { return this->ptr.get(); }
 	operator bool() const { return this->ptr.get() != nullptr; }
 
 	T** operator&() { static_assert(sizeof(*this) == sizeof(void*)); assert(ptr); return (T**)this; }
-	T* operator->(){ return this->ptr.get(); }
-	void operator=(T* _ptr) { this->ptr.reset(_ptr); }
+	T* operator->() { return this->ptr.get(); }
 
 	T* release() { return ptr.release(); }
 private:
@@ -70,8 +71,7 @@ using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>, true>;
 using AutoAVCodecContextPtr = AutoPtr<AVCodecContext, Functor<avcodec_free_context>, true>;
 using AutoAVFormatContextPtr = AutoPtr<AVFormatContext, Functor<avformat_free_context>, false>;
 using AutoSwsContextPtr = AutoPtr<SwsContext, Functor<sws_freeContext>, false>;
-using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>,true>;
-
+using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>, true>;
 
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
 template<>
