@@ -17,9 +17,7 @@ public:
 		ALLOC_ERROR, OPEN_ERROR
 	};
 	/*
-	* 
-	* 
-	* 
+	*
 	*/
 	LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
 	~LearnVideo() {};
@@ -41,12 +39,7 @@ public:
 	RESULT start_video_decode();
 	//音视频编码
 	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
-	/*
-	* 开始解码
-	*/
-	RESULT start_video_encode(const AVFrame* frame);
 
-	const AVFormatContext* get_avfctx() { return avfctx; }
 private:
 
 	AutoAVFormatContextPtr avfctx;
@@ -57,9 +50,8 @@ private:
 
 	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 
-	//用于引用avfctx的音频与视频流的下标
-	int AVStreamIndex[6];
-
+	//用于存储avfctx的音频与视频流索引
+	unsigned char AVStreamIndex[6];
 
 	/*
 	* 音频缓存队列以及音频锁 FrameQueue[AVMediaType] 使用并发队列()

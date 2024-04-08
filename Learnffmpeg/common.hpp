@@ -44,33 +44,45 @@ extern"C"
 template <auto F>
 using Functor = std::integral_constant<std::remove_reference_t<decltype(F)>, F>;
 
-template<class T = void, class DeleteFunction = Functor<CloseHandle>, bool isSecPtr = false>
+template<class T = void, class FreeFunc = Functor<CloseHandle>, bool isSecPtr = false>
 struct AutoPtr
 {
 	/*
 	* 构造函数
 	* 删除引用构造函数因为包装std::unique_ptr引用构造不符合语义
 	*/
-	AutoPtr() noexcept{}
-	explicit AutoPtr(AutoPtr& Autoptr) = delete;
+	AutoPtr() noexcept {}
+	AutoPtr(AutoPtr& Autoptr) = delete;
 	explicit AutoPtr(AutoPtr&& Autoptr) noexcept : _ptr(Autoptr.release()) {}
 	AutoPtr(T* ptr) noexcept : _ptr(ptr) {}
 
+	/*
+	* 重载赋值符号
+	*/
 	void operator=(T* ptr)noexcept { _ptr.reset(ptr); }
 	void operator=(AutoPtr&& Autoptr) noexcept { _ptr.reset(Autoptr.release()); }
 
+	/*
+	* 类型转化重载
+	*/
 	operator T* () const noexcept { return _ptr.get(); }
 	operator bool() const noexcept { return _ptr.get() != nullptr; }
 
+	/*
+	* 运算符重载
+	*/
 	T** operator&() { static_assert(sizeof(*this) == sizeof(void*)); assert(_ptr); return (T**)this; }
 	T* operator->() const noexcept { return _ptr.get(); }
 
+	/*
+	* 成员函数
+	*/
 	void reset(T* ptr)noexcept { _ptr.reset(ptr); }
 	T* release() noexcept { return _ptr.release(); }
 	T* get() const noexcept { return _ptr.get(); }
 private:
-	struct DeletePrimaryPtr { void operator()(void* ptr) { DeleteFunction()(static_cast<T*>(ptr)); } };
-	struct DeleteSecPtr { void operator()(void* ptr) { DeleteFunction()(reinterpret_cast<T**>(this)); } };
+	struct DeletePrimaryPtr { void operator()(void* ptr) { FreeFunc()(static_cast<T*>(ptr)); } };
+	struct DeleteSecPtr { void operator()(void* ptr) { FreeFunc()(reinterpret_cast<T**>(this)); } };
 	using DeletePtr = std::conditional<isSecPtr, DeleteSecPtr, DeletePrimaryPtr>::type;
 	std::unique_ptr<T, DeletePtr> _ptr;
 };
@@ -83,5 +95,4 @@ using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>, true>;
 
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
 template<>
-inline AutoAVFramePtr::AutoPtr(AutoAVFramePtr&& Autoptr) noexcept : _ptr(Autoptr.release()) {  }
-inline AVFrame* AutoAVFramePtr::release()noexcept { return _ptr.release(); }
+inline AutoAVFramePtr::AutoPtr(AutoAVFramePtr&& Autoptr) noexcept : _ptr(Autoptr.release()) {}
