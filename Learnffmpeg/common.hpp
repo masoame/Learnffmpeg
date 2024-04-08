@@ -94,5 +94,10 @@ using AutoSwsContextPtr = AutoPtr<SwsContext, Functor<sws_freeContext>, false>;
 using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>, true>;
 
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
-template<>
-inline AutoAVFramePtr::AutoPtr(AutoAVFramePtr&& Autoptr) noexcept : _ptr(Autoptr.release()) {}
+
+/*
+* 自定义并发队列
+*/
+
+
+

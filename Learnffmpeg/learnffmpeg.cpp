@@ -81,7 +81,14 @@ LearnVideo::RESULT LearnVideo::start_video_decode()
 				while (true)
 				{
 					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { FrameQueue[index].push(std::move(avf).release()); }
+					if (err == 0) { 
+						while (QueueSize[index] == 10)Sleep(10);
+
+						FrameQueue[index].push(std::move(avf));
+						avf = av_frame_alloc();
+
+						QueueSize[index]++;
+					}
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return UNKONW_ERROR;
 				}
@@ -94,7 +101,21 @@ LearnVideo::RESULT LearnVideo::start_video_decode()
 				{
 					AVERROR(ENOMEM);
 					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { FrameQueue[index].push(std::move(avf).release()); }
+					if (err == 0) { 
+						while (QueueSize[index] == 10)Sleep(10);
+
+						if(index==AVMEDIA_TYPE_AUDIO)
+							std::cout << "\nAUDIO: " << avf->pts << std::endl;
+						else if(index == AVMEDIA_TYPE_VIDEO)
+							std::cout << "\nVIDEO: " << avf->pts << std::endl;
+						std::cout << "timebase: " << avf->time_base.den << "/" << avf->time_base.num << std::endl;
+
+
+						FrameQueue[index].push(avf.release());
+						avf = av_frame_alloc();
+
+						QueueSize[index]++;
+					}
 					else if (err == AVERROR(EAGAIN)) break;
 					else if (err == AVERROR_EOF) { goto DecodeEND; }
 					else return UNKONW_ERROR;

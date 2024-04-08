@@ -50,7 +50,9 @@ private:
 
 	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 
-	//用于存储avfctx的音频与视频流索引
+	/*
+	* 用于存储avfctx的音频与视频流索引
+	*/
 	unsigned char AVStreamIndex[6];
 
 	/*
@@ -58,5 +60,7 @@ private:
 	* 使用裸指针主要是因为容器try_pop是进行内存拷贝，不走构造函数
 	* 接受指针时请使用智能指针 AutoAVFramePtr
 	*/
+public:
+	std::atomic_ushort QueueSize[6];
 	Concurrency::concurrent_queue<AVFrame*> FrameQueue[6];
 };
