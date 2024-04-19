@@ -36,12 +36,15 @@ public:
 	//开始转化图像帧
 	RESULT start_sws(const AVFrame* avf);
 	//开始音视频解码
-	RESULT start_video_decode();
+	RESULT start_decode_thread() noexcept;
 	//音视频编码
 	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
 
 private:
 
+	/*
+	* 基础的解码编码需要的指针
+	*/
 	AutoAVFormatContextPtr avfctx;
 	AutoAVCodecContextPtr decode_ctx[2];
 	AutoAVCodecContextPtr encode_ctx[2];
@@ -53,13 +56,20 @@ private:
 	/*
 	* 用于存储avfctx的音频与视频流索引
 	*/
-	unsigned char AVStreamIndex[6];
+
+	AVMediaType AVStreamIndex[6]{ AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN,AVMEDIA_TYPE_UNKNOWN };
 
 	/*
 	* 音频缓存队列以及音频锁 FrameQueue[AVMediaType] 使用并发队列()
 	* 使用裸指针主要是因为容器try_pop是进行内存拷贝，不走构造函数
 	* 接受指针时请使用智能指针 AutoAVFramePtr
 	*/
+
+	/*
+	* 线程id存储
+	*/
+	DWORD decode_thread_id;
+
 public:
 	std::atomic_ushort QueueSize[6];
 	Concurrency::concurrent_queue<AVFrame*> FrameQueue[6];

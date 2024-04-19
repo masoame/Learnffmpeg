@@ -6,8 +6,10 @@ LearnVideo::RESULT LearnVideo::open(const char* url, const AVInputFormat* fmt, A
 	avformat_find_stream_info(avfctx, nullptr);
 	av_dump_format(avfctx, 0, url, false);
 
-	AVStreamIndex[AVMEDIA_TYPE_VIDEO] = av_find_best_stream(avfctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-	AVStreamIndex[AVMEDIA_TYPE_AUDIO] = av_find_best_stream(avfctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+	int index = av_find_best_stream(avfctx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+	if (index != AVERROR_STREAM_NOT_FOUND) AVStreamIndex[index] = AVMEDIA_TYPE_VIDEO;
+	index = av_find_best_stream(avfctx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+	if (index != AVERROR_STREAM_NOT_FOUND) AVStreamIndex[index] = AVMEDIA_TYPE_AUDIO;
 
 	return SUCCESS;
 }
@@ -28,19 +30,15 @@ LearnVideo::RESULT LearnVideo::init_decode()
 
 	if (!decode_ctx[AVMEDIA_TYPE_VIDEO] || !decode_ctx[AVMEDIA_TYPE_AUDIO]) return ALLOC_ERROR;
 
-	if (AVStreamIndex[AVMEDIA_TYPE_VIDEO] != AVERROR_STREAM_NOT_FOUND)
+
+	for (int i = 0; i != 6; i++)
 	{
-		if (avcodec_parameters_to_context(decode_ctx[AVMEDIA_TYPE_VIDEO], avfctx->streams[AVStreamIndex[AVMEDIA_TYPE_VIDEO]]->codecpar) < 0)return ARGS_ERROR;
-		decode_video = avcodec_find_decoder(decode_ctx[AVMEDIA_TYPE_VIDEO]->codec_id);
-		if (avcodec_open2(decode_ctx[AVMEDIA_TYPE_VIDEO], decode_video, NULL))return OPEN_ERROR;
+		if (AVStreamIndex[i] == AVMEDIA_TYPE_UNKNOWN)continue;
+		if (avcodec_parameters_to_context(decode_ctx[AVStreamIndex[i]], avfctx->streams[i]->codecpar) < 0)return ARGS_ERROR;
+		decode_video = avcodec_find_decoder(decode_ctx[AVStreamIndex[i]]->codec_id);
+		if (avcodec_open2(decode_ctx[AVStreamIndex[i]], decode_video, NULL))return OPEN_ERROR;
 	}
 
-	if (AVStreamIndex[AVMEDIA_TYPE_AUDIO] != AVERROR_STREAM_NOT_FOUND)
-	{
-		if (avcodec_parameters_to_context(decode_ctx[AVMEDIA_TYPE_AUDIO], avfctx->streams[AVStreamIndex[AVMEDIA_TYPE_AUDIO]]->codecpar) < 0)return ARGS_ERROR;
-		decode_audio = avcodec_find_decoder(decode_ctx[AVMEDIA_TYPE_AUDIO]->codec_id);
-		if (avcodec_open2(decode_ctx[AVMEDIA_TYPE_AUDIO], decode_audio, NULL))return OPEN_ERROR;
-	}
 	return SUCCESS;
 }
 
@@ -61,70 +59,67 @@ LearnVideo::RESULT LearnVideo::init_sws(const AVFrame* avf, const AVPixelFormat 
 	return SUCCESS;
 }
 
-LearnVideo::RESULT LearnVideo::start_video_decode()
+LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 {
-	int err;
-	AutoAVPacketPtr avp = av_packet_alloc();
-	AutoAVFramePtr avf = av_frame_alloc();
-
-	while (true)
+	std::thread([&]()->void
 	{
-		err = av_read_frame(avfctx, avp);
+		decode_thread_id = GetCurrentThreadId();
+		int err;
+		AutoAVPacketPtr avp = av_packet_alloc();
+		AutoAVFramePtr avf = av_frame_alloc();
 
-		AVMediaType index = (AVMediaType)avp->stream_index;
-		if (index == AVMEDIA_TYPE_VIDEO || index == AVMEDIA_TYPE_AUDIO)
+		while (true)
 		{
-			if (err == AVERROR_EOF)
+			err = av_read_frame(avfctx, avp);
+
+			AVMediaType index = AVStreamIndex[avp->stream_index];
+			if (index == AVMEDIA_TYPE_VIDEO || index == AVMEDIA_TYPE_AUDIO)
 			{
-				avcodec_send_packet(decode_ctx[index], avp);
-				av_packet_unref(avp);
-				while (true)
+				if (err == AVERROR_EOF)
 				{
-					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { 
-						while (QueueSize[index] == 10)Sleep(10);
+					avcodec_send_packet(decode_ctx[index], avp);
+					av_packet_unref(avp);
+					while (true)
+					{
+						err = avcodec_receive_frame(decode_ctx[index], avf);
+						if (err == 0) {
+							while (QueueSize[index] == 10)Sleep(5);
 
-						FrameQueue[index].push(std::move(avf));
-						avf = av_frame_alloc();
-
-						QueueSize[index]++;
+							FrameQueue[index].push(avf.release());
+							avf = av_frame_alloc();
+							QueueSize[index]++;
+						}
+						else if (err == AVERROR_EOF) return;
+						//未知错误暂时不处理
+						else return;
 					}
-					else if (err == AVERROR_EOF) { goto DecodeEND; }
-					else return UNKONW_ERROR;
+				}
+				else if (err == 0)
+				{
+					while ((err = avcodec_send_packet(decode_ctx[index], avp)) == AVERROR(EAGAIN)) { Sleep(10); }
+					av_packet_unref(avp);
+					while (true)
+					{
+						AVERROR(ENOMEM);
+						err = avcodec_receive_frame(decode_ctx[index], avf);
+						if (err == 0) {
+							while (QueueSize[index] == 10)Sleep(10);
+
+							FrameQueue[index].push(avf.release());
+							avf = av_frame_alloc();
+
+							QueueSize[index]++;
+						}
+						else if (err == AVERROR(EAGAIN)) break;
+						else if (err == AVERROR_EOF) return;
+						//未知错误暂时不处理
+						else return;
+					}
 				}
 			}
-			else if (err == 0)
-			{
-				while ((err = avcodec_send_packet(decode_ctx[index], avp)) == AVERROR(EAGAIN)) { Sleep(10); }
-				av_packet_unref(avp);
-				while (true)
-				{
-					AVERROR(ENOMEM);
-					err = avcodec_receive_frame(decode_ctx[index], avf);
-					if (err == 0) { 
-						while (QueueSize[index] == 10)Sleep(10);
-
-						if(index==AVMEDIA_TYPE_AUDIO)
-							std::cout << "\nAUDIO: " << avf->pts << std::endl;
-						else if(index == AVMEDIA_TYPE_VIDEO)
-							std::cout << "\nVIDEO: " << avf->pts << std::endl;
-						std::cout << "timebase: " << avf->time_base.den << "/" << avf->time_base.num << std::endl;
-
-
-						FrameQueue[index].push(avf.release());
-						avf = av_frame_alloc();
-
-						QueueSize[index]++;
-					}
-					else if (err == AVERROR(EAGAIN)) break;
-					else if (err == AVERROR_EOF) { goto DecodeEND; }
-					else return UNKONW_ERROR;
-				}
-			}
+			else { av_packet_unref(avp); }
 		}
-		else { av_packet_unref(avp); }
-	}
-DecodeEND:
+	}).detach();
 	return SUCCESS;
 }
 
@@ -133,37 +128,3 @@ LearnVideo::RESULT LearnVideo::init_encode(const enum AVCodecID encodeid, AVFram
 	return SUCCESS;
 }
 
-//LearnVideo::RESULT LearnVideo::start_video_encode(const AVFrame* frame)
-//{
-//	AVPacket* pkt_out = av_packet_alloc();
-//	//往编码器发送 AVFrame，然后不断读取 AVPacket
-//	int ret = avcodec_send_frame(encode_video_ctx, frame);
-//	if (ret < 0) {
-//		printf("avcodec_send_frame fail %d \n", ret);
-//		return ret;
-//	}
-//	while(true)
-//	{
-//		ret = avcodec_receive_packet(encode_video_ctx, pkt_out);
-//		if (ret == AVERROR(EAGAIN)) {
-//			break;
-//		}
-//		//前面没有往 编码器发 NULL,所以正常情况 ret 不会小于 0
-//		if (ret < 0) {
-//			printf("avcodec_receive_packet fail %d \n", ret);
-//			return ret;
-//		}
-//		//编码出 AVPacket ，打印一些信息。
-//		printf("pkt_out size : %d \n", pkt_out->size);
-//
-//		av_packet_unref(pkt_out);
-//	}
-//
-//	return SUCCESS;
-//}
-
-//LearnVideo::RESULT LearnVideo::start_sws(const AVFrame* src_avf)
-//{
-//	sws_scale(sws_ctx, src_avf->data, src_avf->linesize, 0, src_avf->height, dst_ch->data(), dst_ch->linesize);
-//	return SUCCESS;
-//}
