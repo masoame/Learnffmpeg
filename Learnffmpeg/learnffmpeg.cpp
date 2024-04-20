@@ -96,14 +96,14 @@ LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 				}
 				else if (err == 0)
 				{
-					while ((err = avcodec_send_packet(decode_ctx[index], avp)) == AVERROR(EAGAIN)) { Sleep(10); }
+					while ((err = avcodec_send_packet(decode_ctx[index], avp)) == AVERROR(EAGAIN)) { Sleep(1); }
 					av_packet_unref(avp);
 					while (true)
 					{
 						AVERROR(ENOMEM);
 						err = avcodec_receive_frame(decode_ctx[index], avf);
 						if (err == 0) {
-							while (QueueSize[index] == 10)Sleep(10);
+							while (QueueSize[index] == 75)Sleep(10);
 
 							FrameQueue[index].push(avf.release());
 							avf = av_frame_alloc();

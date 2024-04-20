@@ -66,12 +66,13 @@ struct AutoPtr
 	* 类型转化重载
 	*/
 	operator T* () const noexcept { return _ptr.get(); }
+	operator T* &() noexcept { return *reinterpret_cast<T**>(this); }
 	operator bool() const noexcept { return _ptr.get() != nullptr; }
 
 	/*
 	* 运算符重载
 	*/
-	T** operator&() { static_assert(sizeof(*this) == sizeof(void*)); assert(_ptr); return (T**)this; }
+	T** operator&() { static_assert(sizeof(*this) == sizeof(void*)); assert(_ptr); return reinterpret_cast<T**>(this); }
 	T* operator->() const noexcept { return _ptr.get(); }
 
 	/*
