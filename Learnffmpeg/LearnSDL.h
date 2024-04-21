@@ -1,16 +1,22 @@
 #pragma once
 #include"common.hpp"
 #include"learnffmpeg.h"
-class LearnSDL
+namespace LearnSDL
 {
-public:
-	static inline void bind(LearnVideo* LV) { _LV = LV; }
-	static void SDLCALL default_callback(void* userdata, Uint8* stream, int len);
-	static void InitAudio( SDL_AudioCallback callback = default_callback);
-private:	
-	static bool flush_buf();
-	static LearnVideo* _LV;
-	static AutoAVFramePtr avf;
-	static Uint8* audio_pos;
-	static long long buflen;
+	extern LearnVideo* target;
+	extern AutoAVFramePtr avf;
+
+	extern Uint8* audio_buf[8];
+	extern Uint8* audio_pos;
+	extern int buflen;
+
+	extern bool is_planner;
+	extern SDL_AudioFormat map_formot[13];
+
+	inline void bind(LearnVideo* in) noexcept { target = in; }
+
+	extern void SDLCALL default_callback(void* userdata, Uint8* stream, int len);
+	extern void InitAudio(SDL_AudioCallback callback = default_callback);
+	extern bool flush_buf();
+	extern bool format_frame();
 };

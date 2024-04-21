@@ -1,5 +1,23 @@
 #include"learnffmpeg.h"
 
+//×ª»¯map
+AVSampleFormat LearnVideo::map_palnner_to_packad[13]{
+	AV_SAMPLE_FMT_NONE,
+	AV_SAMPLE_FMT_NONE,
+	AV_SAMPLE_FMT_NONE,
+	AV_SAMPLE_FMT_NONE,
+	AV_SAMPLE_FMT_NONE,
+	AV_SAMPLE_FMT_U8,
+	AV_SAMPLE_FMT_S16,
+	AV_SAMPLE_FMT_S32,
+	AV_SAMPLE_FMT_FLT,
+	AV_SAMPLE_FMT_DBL,
+	AV_SAMPLE_FMT_NONE,
+	AV_SAMPLE_FMT_S64,
+	AV_SAMPLE_FMT_NONE
+};
+
+
 LearnVideo::RESULT LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** options)
 {
 	if (avformat_open_input(&avfctx, url, fmt, options)) return OPEN_ERROR;
@@ -34,16 +52,30 @@ LearnVideo::RESULT LearnVideo::init_decode()
 	return SUCCESS;
 }
 
-void LearnVideo::sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize)
+LearnVideo::RESULT LearnVideo::init_swr(const AVFrame* avf)
 {
-	swr_convert
+	if (avf == nullptr)return ARGS_ERROR;
+
+	if (avf->format == AV_SAMPLE_FMT_NONE || map_palnner_to_packad[avf->format] == AV_SAMPLE_FMT_NONE)return UNNEED_SWR;
+
+	swr_ctx = swr_alloc();
+	if (!swr_ctx)return ALLOC_ERROR;
+
+	AVChannelLayout out_ch_layout;
+	out_ch_layout.nb_channels = 1;
+	out_ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
+	out_ch_layout.u.mask = 1;
+	out_ch_layout.opaque = nullptr;
+	
+	if (swr_alloc_set_opts2(&swr_ctx, &out_ch_layout, map_palnner_to_packad[avf->format], avf->sample_rate, &avf->ch_layout, (AVSampleFormat)avf->format, avf->sample_rate, 0, nullptr))return UNKONW_ERROR;
+	if (swr_init(swr_ctx))return INIT_ERROR;
+	return SUCCESS;
 }
 
-LearnVideo::RESULT LearnVideo::init_swr(const AVChannelLayout* out_ch_layout, const enum AVSampleFormat out_sample_fmt, const int out_sample_rate)
+LearnVideo::RESULT LearnVideo::sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize)
 {
-	swr_ctx = swr_alloc();
-	swr_alloc_set_opts2(&swr_ctx, out_ch_layout, out_sample_fmt, out_sample_rate, decode_audio->ch_layouts, *decode_audio->sample_fmts, *decode_audio->supported_samplerates, 0, nullptr);
-	swr_init(swr_ctx);
+	int temp = avf->ch_layout.nb_channels * avf->linesize[0];
+	*linesize = swr_convert(swr_ctx, data, temp, avf->data, avf->linesize[0]);
 	return SUCCESS;
 }
 

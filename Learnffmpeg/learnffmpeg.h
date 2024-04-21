@@ -14,28 +14,23 @@ public:
 	enum RESULT
 	{
 		SUCCESS, UNKONW_ERROR, ARGS_ERROR,
-		ALLOC_ERROR, OPEN_ERROR
+		ALLOC_ERROR, OPEN_ERROR, INIT_ERROR,
+		UNNEED_SWR
 	};
-	/*
-	*
-	*/
+
 	explicit LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
 	~LearnVideo() {};
-	RESULT open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
-	RESULT close();
 
-	//初始化所有参数
-	RESULT init();
-	//初始化音视频解码器
+	RESULT open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
+
 	RESULT init_decode();
 
-	void sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize);
+	//音频重采样(planner到packed格式转化)
+	RESULT init_swr(const AVFrame* avf);
+	RESULT sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize);
 
-	//初始化音频转化器
-	RESULT init_swr(const AVChannelLayout* out_ch_layout, const enum AVSampleFormat out_sample_fmt, const int out_sample_rate);
 	//帧格式转化
 	RESULT init_sws(const AVFrame* avf, const AVPixelFormat dstFormat, const int dstW = 0, const int dstH = 0);
-
 	//开始转化图像帧
 	RESULT start_sws(const AVFrame* avf);
 	//开始音视频解码
@@ -44,7 +39,7 @@ public:
 	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
 
 private:
-
+	static AVSampleFormat map_palnner_to_packad[13];
 	/*
 	* 基础的解码编码需要的指针
 	*/
