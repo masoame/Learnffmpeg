@@ -14,14 +14,6 @@ LearnVideo::RESULT LearnVideo::open(const char* url, const AVInputFormat* fmt, A
 	return SUCCESS;
 }
 
-LearnVideo::RESULT LearnVideo::close()
-{
-	return SUCCESS;
-}
-LearnVideo::RESULT LearnVideo::init()
-{
-	return init_decode();
-}
 
 LearnVideo::RESULT LearnVideo::init_decode()
 {
@@ -40,6 +32,11 @@ LearnVideo::RESULT LearnVideo::init_decode()
 	}
 
 	return SUCCESS;
+}
+
+void LearnVideo::sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize)
+{
+	swr_convert
 }
 
 LearnVideo::RESULT LearnVideo::init_swr(const AVChannelLayout* out_ch_layout, const enum AVSampleFormat out_sample_fmt, const int out_sample_rate)

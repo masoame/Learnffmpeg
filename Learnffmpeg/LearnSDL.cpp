@@ -20,7 +20,11 @@ bool LearnSDL::flush_buf()
 void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)
 {
 	SDL_memset(stream, 0, len);
-	if (buflen == 0 && !flush_buf()) return;
+	if (buflen == 0 && !flush_buf()) 
+	{
+		SDL_CloseAudio(); 
+		return;
+	}
 
 	len = buflen > len ? len : buflen;
 	memcpy(stream, audio_pos, len);
@@ -54,6 +58,8 @@ void LearnSDL::InitAudio(SDL_AudioCallback callback)
 	{
 		std::cout << "audio open failed !!!!" << std::endl;
 	}
+
+	if (av_sample_fmt_is_planar((AVSampleFormat)avf->format)) {};
 
 	audio_pos = avf->data[0];
 	buflen = avf->linesize[0];

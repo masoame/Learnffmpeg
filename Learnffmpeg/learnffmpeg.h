@@ -19,7 +19,7 @@ public:
 	/*
 	*
 	*/
-	LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
+	explicit LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
 	~LearnVideo() {};
 	RESULT open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
 	RESULT close();
@@ -28,6 +28,9 @@ public:
 	RESULT init();
 	//初始化音视频解码器
 	RESULT init_decode();
+
+	void sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize);
+
 	//初始化音频转化器
 	RESULT init_swr(const AVChannelLayout* out_ch_layout, const enum AVSampleFormat out_sample_fmt, const int out_sample_rate);
 	//帧格式转化
@@ -68,7 +71,7 @@ private:
 	/*
 	* 线程id存储
 	*/
-	DWORD decode_thread_id;
+	DWORD decode_thread_id = 0;
 
 public:
 	std::atomic_ushort QueueSize[6];
