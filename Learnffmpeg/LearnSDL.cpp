@@ -3,14 +3,18 @@
 LearnVideo* LearnSDL::_LV;
 Uint8* LearnSDL::audio_pos;
 long long LearnSDL::buflen;
-AutoAVFramePtr LearnSDL::avf;
+AutoAVFramePtr LearnSDL::avf = nullptr;
 
 bool LearnSDL::flush_buf()
 {
+	if(avf)
+	av_frame_unref(avf);
+
 	while (!_LV->QueueSize[AVMEDIA_TYPE_AUDIO]) { Sleep(1); };
 	
 	_LV->FrameQueue[AVMEDIA_TYPE_AUDIO].try_pop(avf);
 	_LV->QueueSize[AVMEDIA_TYPE_AUDIO]--;
+
 	audio_pos = avf->data[0];
 	buflen = avf->linesize[0];
 
@@ -31,11 +35,6 @@ void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)
 	audio_pos += len;
 	buflen -= len;
 	
-	if (buflen == 0) 
-		avf.reset(nullptr);
-	
-
-
 	return;
 }
 
