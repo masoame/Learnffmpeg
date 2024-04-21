@@ -74,8 +74,9 @@ LearnVideo::RESULT LearnVideo::init_swr(const AVFrame* avf)
 
 LearnVideo::RESULT LearnVideo::sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize)
 {
-	int temp = avf->ch_layout.nb_channels * avf->linesize[0];
-	*linesize = swr_convert(swr_ctx, data, temp, avf->data, avf->linesize[0]);
+	int temp = 4 * avf->linesize[0];
+	*linesize = swr_convert(swr_ctx, data, temp, avf->data, avf->nb_samples);
+	*linesize *= 4;
 	return SUCCESS;
 }
 

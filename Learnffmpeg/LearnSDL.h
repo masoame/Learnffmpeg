@@ -6,7 +6,7 @@ namespace LearnSDL
 	extern LearnVideo* target;
 	extern AutoAVFramePtr avf;
 
-	extern Uint8* audio_buf[8];
+	extern Uint8* audio_buf;
 	extern Uint8* audio_pos;
 	extern int buflen;
 

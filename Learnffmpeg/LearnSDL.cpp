@@ -20,7 +20,7 @@ namespace LearnSDL
 
 	LearnVideo* target = nullptr;
 
-	Uint8* audio_buf[8];
+	Uint8* audio_buf;
 	Uint8* audio_pos = nullptr;
 	int buflen = 0;
 
@@ -45,8 +45,8 @@ namespace LearnSDL
 
 		if (is_planner)
 		{
-			target->sample_planner_to_packed(avf, audio_buf, &buflen);
-			audio_pos = audio_buf[0];
+			target->sample_planner_to_packed(avf, &audio_buf, &buflen);
+			audio_pos = audio_buf;
 		}
 		else
 		{
@@ -62,13 +62,9 @@ namespace LearnSDL
 		if (buflen == 0)
 		{
 			if (flush_buf())
-			{
 				format_frame();
-			}
 			else
-			{
 				SDL_CloseAudio();
-			}
 
 			return;
 		}
@@ -84,17 +80,13 @@ namespace LearnSDL
 	void InitAudio(SDL_AudioCallback callback)
 	{
 		SDL_Init(SDL_INIT_AUDIO);
-		//Ë¢ÐÂ»ñÈ¡
-
+		
 		flush_buf();
-
 		if (av_sample_fmt_is_planar((AVSampleFormat)avf->format))
 		{
 			if (target->init_swr(avf) != LearnVideo::SUCCESS) throw "init_swr() failed";
 			is_planner = true;
-			audio_buf[0] = new uint8_t[1024*1024];
-			audio_buf[1] = new uint8_t[1024 * 1024];
-			audio_buf[2] = new uint8_t[1024 * 1024];
+			audio_buf = new uint8_t[1024 * 1024];
 		}
 		format_frame();
 
