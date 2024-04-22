@@ -4,7 +4,7 @@
 int main(int argc, char* args[])
 {
 	LearnVideo LV;
-	LearnVideo::RESULT err = LV.open("D:\\test.mp3");
+	LearnVideo::RESULT err = LV.open("D:\\test2.mp3");
 	if (err != LearnVideo::SUCCESS) return -1;
 	err = LV.init_decode();
 	if (err != LearnVideo::SUCCESS) return -1;

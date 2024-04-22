@@ -97,6 +97,6 @@ namespace LearnSDL
 		sdl_audio.freq = avf->sample_rate;
 		sdl_audio.callback = callback;
 
-		if (SDL_OpenAudio(&sdl_audio, nullptr)) throw "SDL_OpenAudio failed!!!\n";
+ 		if (SDL_OpenAudio(&sdl_audio, nullptr)) throw "SDL_OpenAudio failed!!!\n";
 	}
 }
