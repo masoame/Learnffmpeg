@@ -17,7 +17,6 @@ AVSampleFormat LearnVideo::map_palnner_to_packad[13]{
 	AV_SAMPLE_FMT_NONE
 };
 
-
 LearnVideo::RESULT LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** options)
 {
 	if (avformat_open_input(&avfctx, url, fmt, options)) return OPEN_ERROR;
@@ -32,14 +31,12 @@ LearnVideo::RESULT LearnVideo::open(const char* url, const AVInputFormat* fmt, A
 	return SUCCESS;
 }
 
-
 LearnVideo::RESULT LearnVideo::init_decode()
 {
 	decode_ctx[AVMEDIA_TYPE_VIDEO] = avcodec_alloc_context3(nullptr);
 	decode_ctx[AVMEDIA_TYPE_AUDIO] = avcodec_alloc_context3(nullptr);
 
 	if (!decode_ctx[AVMEDIA_TYPE_VIDEO] || !decode_ctx[AVMEDIA_TYPE_AUDIO]) return ALLOC_ERROR;
-
 
 	for (int i = 0; i != 6; i++)
 	{
@@ -66,7 +63,7 @@ LearnVideo::RESULT LearnVideo::init_swr(const AVFrame* avf)
 	out_ch_layout.order = AV_CHANNEL_ORDER_NATIVE;
 	out_ch_layout.u.mask = 1;
 	out_ch_layout.opaque = nullptr;
-	
+
 	if (swr_alloc_set_opts2(&swr_ctx, &out_ch_layout, map_palnner_to_packad[avf->format], avf->sample_rate, &avf->ch_layout, (AVSampleFormat)avf->format, avf->sample_rate, 0, nullptr))return UNKONW_ERROR;
 	if (swr_init(swr_ctx))return INIT_ERROR;
 	return SUCCESS;
@@ -92,69 +89,68 @@ LearnVideo::RESULT LearnVideo::init_sws(const AVFrame* avf, const AVPixelFormat 
 LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 {
 	std::thread([&]()->void
-	{
-		decode_thread_id = GetCurrentThreadId();
-		int err;
-		AutoAVPacketPtr avp = av_packet_alloc();
-		AutoAVFramePtr avf = av_frame_alloc();
-
-		while (true)
 		{
-			err = av_read_frame(avfctx, avp);
+			decode_thread_id = GetCurrentThreadId();
+			int err;
+			AutoAVPacketPtr avp = av_packet_alloc();
+			AutoAVFramePtr avf = av_frame_alloc();
 
-			AVMediaType index = AVStreamIndex[avp->stream_index];
-			if (index == AVMEDIA_TYPE_VIDEO || index == AVMEDIA_TYPE_AUDIO)
+			while (true)
 			{
-				if (err == AVERROR_EOF)
-				{
-					avcodec_send_packet(decode_ctx[index], avp);
-					av_packet_unref(avp);
-					while (true)
-					{
-						err = avcodec_receive_frame(decode_ctx[index], avf);
-						if (err == 0) {
-							while (QueueSize[index] == 10)Sleep(5);
+				err = av_read_frame(avfctx, avp);
 
-							FrameQueue[index].push(avf.release());
-							avf = av_frame_alloc();
-							QueueSize[index]++;
+				AVMediaType index = AVStreamIndex[avp->stream_index];
+				if (index == AVMEDIA_TYPE_VIDEO || index == AVMEDIA_TYPE_AUDIO)
+				{
+					if (err == AVERROR_EOF)
+					{
+						avcodec_send_packet(decode_ctx[index], avp);
+						av_packet_unref(avp);
+						while (true)
+						{
+							err = avcodec_receive_frame(decode_ctx[index], avf);
+							if (err == 0) {
+								while (QueueSize[index] == 10)Sleep(5);
+
+								FrameQueue[index].push(avf.release());
+								avf = av_frame_alloc();
+								QueueSize[index]++;
+							}
+							else if (err == AVERROR_EOF) return;
+							//未知错误暂时不处理
+							else return;
 						}
-						else if (err == AVERROR_EOF) return;
-						//未知错误暂时不处理
-						else return;
+					}
+					else if (err == 0)
+					{
+						while ((err = avcodec_send_packet(decode_ctx[index], avp)) == AVERROR(EAGAIN)) { Sleep(1); }
+						av_packet_unref(avp);
+						while (true)
+						{
+							AVERROR(ENOMEM);
+							err = avcodec_receive_frame(decode_ctx[index], avf);
+							if (err == 0) {
+								while (QueueSize[index] == 75)Sleep(10);
+
+								FrameQueue[index].push(avf.release());
+								avf = av_frame_alloc();
+
+								QueueSize[index]++;
+							}
+							else if (err == AVERROR(EAGAIN)) break;
+							else if (err == AVERROR_EOF) return;
+							//未知错误暂时不处理
+							else return;
+						}
 					}
 				}
-				else if (err == 0)
-				{
-					while ((err = avcodec_send_packet(decode_ctx[index], avp)) == AVERROR(EAGAIN)) { Sleep(1); }
-					av_packet_unref(avp);
-					while (true)
-					{
-						AVERROR(ENOMEM);
-						err = avcodec_receive_frame(decode_ctx[index], avf);
-						if (err == 0) {
-							while (QueueSize[index] == 75)Sleep(10);
-
-							FrameQueue[index].push(avf.release());
-							avf = av_frame_alloc();
-
-							QueueSize[index]++;
-						}
-						else if (err == AVERROR(EAGAIN)) break;
-						else if (err == AVERROR_EOF) return;
-						//未知错误暂时不处理
-						else return;
-					}
-				}
+				else { av_packet_unref(avp); }
 			}
-			else { av_packet_unref(avp); }
-		}
-	}).detach();
-	return SUCCESS;
+		}).detach();
+		return SUCCESS;
 }
 
 LearnVideo::RESULT LearnVideo::init_encode(const enum AVCodecID encodeid, AVFrame* frame)
 {
 	return SUCCESS;
 }
-

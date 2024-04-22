@@ -66,7 +66,7 @@ struct AutoPtr
 	* 类型转化重载
 	*/
 	operator T* () const noexcept { return _ptr.get(); }
-	operator T* &() noexcept { return *reinterpret_cast<T**>(this); }
+	operator T*& () noexcept { return *reinterpret_cast<T**>(this); }
 	operator bool() const noexcept { return _ptr.get() != nullptr; }
 
 	/*
@@ -78,12 +78,13 @@ struct AutoPtr
 	/*
 	* 成员函数
 	*/
-	void reset(T* ptr)noexcept { _ptr.reset(ptr); }
+
+	void reset(T* ptr = nullptr) noexcept { _ptr.reset(ptr); }
 	T* release() noexcept { return _ptr.release(); }
 	T* get() const noexcept { return _ptr.get(); }
 private:
 	struct DeletePrimaryPtr { void operator()(void* ptr) { FreeFunc()(static_cast<T*>(ptr)); } };
-	struct DeleteSecPtr { void operator()(void* ptr) { FreeFunc()(reinterpret_cast<T**>(this)); } };
+	struct DeleteSecPtr { void operator()(void* ptr) { FreeFunc()(reinterpret_cast<T**>(&ptr)); } };
 	using DeletePtr = std::conditional<isSecPtr, DeleteSecPtr, DeletePrimaryPtr>::type;
 	std::unique_ptr<T, DeletePtr> _ptr;
 };
@@ -95,10 +96,3 @@ using AutoSwsContextPtr = AutoPtr<SwsContext, Functor<sws_freeContext>, false>;
 using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>, true>;
 
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
-
-/*
-* 自定义并发队列
-*/
-
-
-

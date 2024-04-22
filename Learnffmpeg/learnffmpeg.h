@@ -44,8 +44,6 @@ private:
 	* 基础的解码编码需要的指针
 	*/
 	AutoAVFormatContextPtr avfctx;
-	AutoAVCodecContextPtr decode_ctx[2];
-	AutoAVCodecContextPtr encode_ctx[2];
 	AutoSwrContextPtr swr_ctx;
 	AutoSwsContextPtr sws_ctx;
 
@@ -69,6 +67,8 @@ private:
 	DWORD decode_thread_id = 0;
 
 public:
+	AutoAVCodecContextPtr decode_ctx[2];
+	AutoAVCodecContextPtr encode_ctx[2];
 	std::atomic_ushort QueueSize[6];
 	Concurrency::concurrent_queue<AVFrame*> FrameQueue[6];
 };

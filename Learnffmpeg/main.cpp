@@ -8,9 +8,9 @@ int main(int argc, char* args[])
 	if (err != LearnVideo::SUCCESS) return -1;
 	err = LV.init_decode();
 	if (err != LearnVideo::SUCCESS) return -1;
-	
+
 	LV.start_decode_thread();
-	
+
 	//≥ı ºªØ
 	LearnSDL::bind(&LV);
 	LearnSDL::InitAudio();
