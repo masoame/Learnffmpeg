@@ -63,7 +63,7 @@ namespace LearnSDL
 		SDL_memset(stream, 0, len);
 		if (buflen == 0)
 		{
-			if (flush_buf()) format_frame();
+			if (flush_buf()) format_frame(); 
 			else { SDL_CloseAudio(); return; }
 		}
 
@@ -77,22 +77,22 @@ namespace LearnSDL
 
 	void InitAudio(SDL_AudioCallback callback)
 	{
-		SDL_Init(SDL_INIT_AUDIO);
+		if(SDL_Init(SDL_INIT_AUDIO))throw "SDL_init error";
 
-		flush_buf();
+		if (!flush_buf())throw "get_frame error";
 		if (av_sample_fmt_is_planar((AVSampleFormat)avf->format))
 		{
 			if (target->init_swr(avf) != LearnVideo::SUCCESS) throw "init_swr() failed";
 			is_planner = true;
 		}
-		format_frame();
+		if (!format_frame())throw "format_frame error";
 
 		if (map_audio_formot[avf->format] == -1) throw "audio format is not suport!!!\n";
 
 		SDL_AudioSpec sdl_audio{ 0 };
 		sdl_audio.format = map_audio_formot[avf->format];
 		sdl_audio.channels = avf->ch_layout.nb_channels;
-		sdl_audio.samples = avf->linesize[0] / LearnVideo::sample_bit_size[avf->format];
+		sdl_audio.samples = avf->linesize[0] / LearnVideo::sample_bit_size[avf->format]/ avf->ch_layout.nb_channels;
 		sdl_audio.silence = 0;
 		sdl_audio.freq = avf->sample_rate;
 		sdl_audio.callback = callback;

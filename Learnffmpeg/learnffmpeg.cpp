@@ -129,7 +129,7 @@ LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 							AVERROR(ENOMEM);
 							err = avcodec_receive_frame(decode_ctx[index], avf);
 							if (err == 0) {
-								while (QueueSize[index] == 10)Sleep(10);
+								while (QueueSize[index] == 100)Sleep(10);
 
 								FrameQueue[index].push(avf.release());
 								avf = av_frame_alloc();
