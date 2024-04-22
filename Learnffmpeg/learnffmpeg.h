@@ -2,11 +2,7 @@
 #include"common.hpp"
 #include <concurrent_queue.h>
 
-struct Clannel_AVFrame
-{
-	uint8_t* data[AV_NUM_DATA_POINTERS];
-	int linesize[AV_NUM_DATA_POINTERS];
-};
+
 
 class LearnVideo
 {
@@ -22,7 +18,6 @@ public:
 	~LearnVideo() {};
 
 	RESULT open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
-
 	RESULT init_decode();
 
 	//音频重采样(planner到packed格式转化)
@@ -67,6 +62,7 @@ private:
 	DWORD decode_thread_id = 0;
 
 public:
+	static unsigned char sample_bit_size[13];
 	AutoAVCodecContextPtr decode_ctx[2];
 	AutoAVCodecContextPtr encode_ctx[2];
 	std::atomic_ushort QueueSize[6];

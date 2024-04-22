@@ -3,10 +3,10 @@
 #include"learnffmpeg.h"
 namespace LearnSDL
 {
+	constexpr int sample_buf_size = 1024 * 1024 * 8;
+
 	//ffmpeg format to SDL format
 	extern SDL_AudioFormat map_audio_formot[13];
-	//映射对应编码一个采样点的大小
-	extern unsigned char sample_bit_size[13];
 
 	//音频对象
 	extern LearnVideo* target;

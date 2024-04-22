@@ -2,6 +2,7 @@
 
 namespace LearnSDL
 {
+
 	SDL_AudioFormat map_audio_formot[13]{
 	AUDIO_U8,
 	AUDIO_S16SYS,
@@ -18,9 +19,7 @@ namespace LearnSDL
 	-1
 	};
 
-	unsigned char sample_bit_size[13]{1,2,4,4,8,1,2,4,4,8,8,8,-1};
-
-	Uint8* audio_buf = new Uint8[1024*1024];
+	Uint8* audio_buf = new Uint8[sample_buf_size];
 
 	LearnVideo* target = nullptr;
 	Uint8* audio_pos = nullptr;
@@ -46,6 +45,7 @@ namespace LearnSDL
 
 		if (is_planner)
 		{
+			buflen = sample_buf_size;
 			target->sample_planner_to_packed(avf, &audio_buf, &buflen);
 			audio_pos = audio_buf;
 		}
@@ -91,8 +91,8 @@ namespace LearnSDL
 
 		SDL_AudioSpec sdl_audio{ 0 };
 		sdl_audio.format = map_audio_formot[avf->format];
-		sdl_audio.channels = 1;
-		sdl_audio.samples = avf->nb_samples;
+		sdl_audio.channels = avf->ch_layout.nb_channels;
+		sdl_audio.samples = avf->linesize[0] / LearnVideo::sample_bit_size[avf->format];
 		sdl_audio.silence = 0;
 		sdl_audio.freq = avf->sample_rate;
 		sdl_audio.callback = callback;
