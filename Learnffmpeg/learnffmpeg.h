@@ -28,6 +28,7 @@ public:
 	RESULT init_sws(const AVFrame* avf, const AVPixelFormat dstFormat, const int dstW = 0, const int dstH = 0);
 	//开始转化图像帧
 	RESULT start_sws(const AVFrame* avf);
+
 	//开始音视频解码
 	RESULT start_decode_thread() noexcept;
 	//音视频编码

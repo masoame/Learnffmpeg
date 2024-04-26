@@ -3,16 +3,15 @@
 #include"learnffmpeg.h"
 namespace LearnSDL
 {
+	//存储采样的内存大小
 	constexpr int sample_buf_size = 1024 * 1024 * 8;
 
 	//ffmpeg format to SDL format
 	extern SDL_AudioFormat map_audio_formot[13];
-
 	//音频对象
 	extern LearnVideo* target;
 	//工作帧
 	extern AutoAVFramePtr avf;
-
 	//缓存区
 	extern Uint8* audio_buf;
 	//工作指针
