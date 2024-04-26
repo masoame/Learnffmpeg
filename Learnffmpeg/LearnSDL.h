@@ -28,11 +28,11 @@ namespace LearnSDL
 	inline void bind(LearnVideo* in) noexcept { target = in; }
 
 	//默认回调函数
-	extern void SDLCALL default_callback(void* userdata, Uint8* stream, int len);
+	extern void SDLCALL default_callback(void* userdata, Uint8* stream, int len) noexcept;
 	//初始化音频播放环境
 	extern void InitAudio(SDL_AudioCallback callback = default_callback);
 	//刷新帧
-	extern bool flush_buf();
+	extern bool flush_buf() noexcept;
 	//对帧进行重采样帧
-	extern bool format_frame();
+	extern bool format_frame()  noexcept;
 };

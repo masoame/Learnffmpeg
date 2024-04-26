@@ -72,6 +72,7 @@ LearnVideo::RESULT LearnVideo::init_swr(const AVFrame* avf)
 LearnVideo::RESULT LearnVideo::sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize)
 {
 	*linesize = swr_convert(swr_ctx, data, *linesize, avf->data, avf->nb_samples);
+	if (*linesize < 0)return ARGS_ERROR;
 	*linesize *= avf->ch_layout.nb_channels * sample_bit_size[avf->format];
 	return SUCCESS;
 }
@@ -82,6 +83,7 @@ LearnVideo::RESULT LearnVideo::init_sws(const AVFrame* avf, const AVPixelFormat 
 		sws_ctx = sws_getContext(avf->width, avf->height, (AVPixelFormat)avf->format, avf->width, avf->height, dstFormat, SWS_FAST_BILINEAR, nullptr, nullptr, 0);
 	else
 		sws_ctx = sws_getContext(avf->width, avf->height, (AVPixelFormat)avf->format, dstW, dstH, dstFormat, SWS_FAST_BILINEAR, nullptr, nullptr, 0);
+
 	return SUCCESS;
 }
 
