@@ -12,36 +12,35 @@ public:
 		UNNEED_SWR
 	};
 
+
 	explicit LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
 	~LearnVideo() {};
 
 	RESULT open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
+
 	RESULT init_decode();
+	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
 
 	//音频重采样(planner到packed格式转化)
 	RESULT init_swr(const AVFrame* avf);
-	RESULT sample_planner_to_packed(const AVFrame* avf, uint8_t** data, int* linesize);
+	RESULT sample_planner_to_packed(const AVFrame* avf , uint8_t** data, int* linesize);
 
 	//帧格式转化
 	RESULT init_sws(const AVFrame* avf, const AVPixelFormat dstFormat, const int dstW = 0, const int dstH = 0);
-	//开始转化图像帧
-	RESULT start_sws(const AVFrame* avf);
+	RESULT yuv_to_rgb(const AVFrame* avf,uint8_t** data, int* linesize);
 
 	//开始音视频解码
 	RESULT start_decode_thread() noexcept;
 
-	//音视频编码
-	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
+
 
 private:
-	static AVSampleFormat map_palnner_to_packad[13];
 
-	/*
-	* 基础的解码编码需要的指针
-	*/
 	AutoAVFormatContextPtr avfctx;
 	AutoSwrContextPtr swr_ctx;
 	AutoSwsContextPtr sws_ctx;
+	AutoAVCodecContextPtr decode_ctx[2];
+	AutoAVCodecContextPtr encode_ctx[2];
 
 	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 
@@ -52,20 +51,52 @@ private:
 	AVMediaType AVStreamIndex[6]{ AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN,AVMEDIA_TYPE_UNKNOWN };
 
 	/*
-	* 音频缓存队列以及音频锁 FrameQueue[AVMediaType] 使用并发队列()
-	* 使用裸指针主要是因为容器try_pop是进行内存拷贝，不走构造函数
-	* 接受指针时请使用智能指针 AutoAVFramePtr
-	*/
-
-	/*
 	* 线程id存储
 	*/
 	DWORD decode_thread_id = 0;
 
 public:
+
+	//每个采样点的占字节数
 	static unsigned char sample_bit_size[13];
-	AutoAVCodecContextPtr decode_ctx[2];
-	AutoAVCodecContextPtr encode_ctx[2];
-	std::atomic_ushort QueueSize[6];
-	Concurrency::concurrent_queue<AVFrame*> FrameQueue[6];
+
+	static AVSampleFormat map_palnner_to_packad[13];
+
+	class 
+	{
+		std::atomic_ushort size[6];
+		Concurrency::concurrent_queue<AVFrame*> FrameQueue[6];
+
+	public:
+		AutoAVFramePtr avframe_work[6];
+		inline void insert_queue(AVMediaType index, AutoAVFramePtr && avf) noexcept
+		{
+			while (size[index] == 50) Sleep(1);
+			FrameQueue[index].push(avf.release());
+			avf = av_frame_alloc();
+			size[index]++;
+		}
+
+		/*
+		* if return flase status is eof 
+		*/
+
+		inline bool flush_frame(AVMediaType index) noexcept
+		{
+			avframe_work[index].reset();
+
+			while (FrameQueue[index].empty()) Sleep(1);
+			size[index]--;
+			FrameQueue[index].try_pop(avframe_work[index]);
+
+			if (avframe_work[index] == nullptr)return false;
+			return true;
+		}
+
+
+
+	}QueueFrame;
+	
+
+
 };

@@ -10,8 +10,6 @@ namespace LearnSDL
 	extern SDL_AudioFormat map_audio_formot[13];
 	//音频对象
 	extern LearnVideo* target;
-	//工作帧
-	extern AutoAVFramePtr avf;
 	//缓存区
 	extern Uint8* audio_buf;
 	//工作指针
@@ -30,8 +28,6 @@ namespace LearnSDL
 	extern void SDLCALL default_callback(void* userdata, Uint8* stream, int len) noexcept;
 	//初始化音频播放环境
 	extern void InitAudio(SDL_AudioCallback callback = default_callback);
-	//刷新帧
-	extern bool flush_buf() noexcept;
 	//对帧进行重采样帧
 	extern bool format_frame()  noexcept;
 };

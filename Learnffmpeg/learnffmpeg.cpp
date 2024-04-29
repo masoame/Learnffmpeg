@@ -1,5 +1,7 @@
 #include"learnffmpeg.h"
 
+
+
 //转化map
 AVSampleFormat LearnVideo::map_palnner_to_packad[13]{
 	AV_SAMPLE_FMT_NONE,
@@ -87,6 +89,12 @@ LearnVideo::RESULT LearnVideo::init_sws(const AVFrame* avf, const AVPixelFormat 
 	return SUCCESS;
 }
 
+LearnVideo::RESULT LearnVideo::yuv_to_rgb(const AVFrame* avf, uint8_t** data, int* linesize)
+{
+
+	return RESULT();
+}
+
 LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 {
 	std::thread([&]()->void
@@ -110,15 +118,8 @@ LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 						while (true)
 						{
 							err = avcodec_receive_frame(decode_ctx[index], avf);
-							if (err == 0) {
-								while (QueueSize[index] == 10)Sleep(5);
-
-								FrameQueue[index].push(avf.release());
-								avf = av_frame_alloc();
-								QueueSize[index]++;
-							}
-							else if (err == AVERROR_EOF) return;
-							//未知错误暂时不处理
+							if (err == 0) QueueFrame.insert_queue(index, std::move(avf));
+							else if (err == AVERROR_EOF) { QueueFrame.insert_queue(index, nullptr); return; }
 							else return;
 						}
 					}
@@ -130,17 +131,9 @@ LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 						{
 							AVERROR(ENOMEM);
 							err = avcodec_receive_frame(decode_ctx[index], avf);
-							if (err == 0) {
-								while (QueueSize[index] == 100)Sleep(10);
-
-								FrameQueue[index].push(avf.release());
-								avf = av_frame_alloc();
-
-								QueueSize[index]++;
-							}
+							if (err == 0) QueueFrame.insert_queue(index, std::move(avf));
 							else if (err == AVERROR(EAGAIN)) break;
-							else if (err == AVERROR_EOF) return;
-							//未知错误暂时不处理
+							else if (err == AVERROR_EOF) { QueueFrame.insert_queue(index, nullptr); return; }
 							else return;
 						}
 					}

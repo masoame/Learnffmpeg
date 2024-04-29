@@ -8,7 +8,7 @@ int main(int argc, char* args[])
 	if (argc >= 2)
 		path = args[1];
 	else
-		path = "D:\\BaiduNetdiskDownload\\[ANi] The Animation - 02 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4";
+		path = "D:\\test.mp3";
 
 	LearnVideo LV;
 	LearnVideo::RESULT err = LV.open(path.c_str());

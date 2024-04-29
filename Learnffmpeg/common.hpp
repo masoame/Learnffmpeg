@@ -65,7 +65,7 @@ struct AutoPtr
 	/*
 	* 类型转化重载
 	*/
-	operator T* () const noexcept { return _ptr.get(); }
+	operator const T* () const noexcept { return _ptr.get(); }
 	operator T*& () noexcept { return *reinterpret_cast<T**>(this); }
 	operator bool() const noexcept { return _ptr.get() != nullptr; }
 
@@ -96,3 +96,6 @@ using AutoSwsContextPtr = AutoPtr<SwsContext, Functor<sws_freeContext>, false>;
 using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>, true>;
 
 using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
+
+
+
