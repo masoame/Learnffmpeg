@@ -9,7 +9,7 @@ int main(int argc, char* args[])
 		path = args[1];
 	else
 		path = "D:\\BaiduNetdiskDownload\\[ANi] The Animation - 02 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4";
-	
+
 	LearnVideo LV;
 	LearnVideo::RESULT err = LV.open(path.c_str());
 	if (err != LearnVideo::SUCCESS) return -1;
@@ -22,6 +22,4 @@ int main(int argc, char* args[])
 	SDL_PauseAudio(0);
 	system("pause");
 	return 0;
-	
-
 }

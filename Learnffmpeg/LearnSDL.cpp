@@ -23,8 +23,6 @@ int LearnSDL::buflen = 0;
 AutoAVFramePtr LearnSDL::avf = nullptr;
 bool LearnSDL::is_planner = false;
 
-
-
 bool LearnSDL::flush_buf() noexcept
 {
 	avf.reset();
@@ -71,7 +69,7 @@ void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)n
 
 	return;
 }
-void LearnSDL::InitAudio(SDL_AudioCallback callback) 
+void LearnSDL::InitAudio(SDL_AudioCallback callback)
 {
 	if (SDL_Init(SDL_INIT_AUDIO))throw "SDL_init error";
 

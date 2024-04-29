@@ -2,8 +2,6 @@
 #include"common.hpp"
 #include <concurrent_queue.h>
 
-
-
 class LearnVideo
 {
 public:
@@ -31,11 +29,13 @@ public:
 
 	//开始音视频解码
 	RESULT start_decode_thread() noexcept;
+
 	//音视频编码
 	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
 
 private:
 	static AVSampleFormat map_palnner_to_packad[13];
+
 	/*
 	* 基础的解码编码需要的指针
 	*/
