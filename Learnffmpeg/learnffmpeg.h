@@ -92,9 +92,6 @@ public:
 			if (avframe_work[index] == nullptr)return false;
 			return true;
 		}
-
-
-
 	}QueueFrame;
 	
 
