@@ -8,7 +8,7 @@ namespace LearnSDL
 	using AutoTexturePtr = AutoPtr<SDL_Window, Functor<SDL_DestroyTexture>, false>;
 
 	//存储采样的内存大小
-	constexpr int sample_buf_size = 1024 * 1024 * 8;
+	constexpr const int sample_buf_size = 1024 * 1024 * 8;
 
 	//ffmpeg format to SDL format
 	extern SDL_AudioFormat const map_audio_formot[13];
@@ -18,6 +18,7 @@ namespace LearnSDL
 	//音频对象
 	extern LearnVideo* target;
 
+	//--------------------------------------------------------------
 
 	//缓存区
 	extern Uint8* audio_buf;
@@ -36,6 +37,10 @@ namespace LearnSDL
 	extern SDL_Renderer* sdl_renderer;
 	//纹理
 	extern SDL_Texture* sdl_texture;
+	//帧缓冲区
+	extern char* video_buf;
+
+	//------------------------------------------------------------------
 
 	//绑定音频对象
 	inline void bind(LearnVideo* in) noexcept { target = in; }
