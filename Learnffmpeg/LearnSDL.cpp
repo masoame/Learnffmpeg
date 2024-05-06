@@ -105,6 +105,7 @@ void LearnSDL::InitVideo(const char* title)
 	LearnVideo::AutoAVFramePtr& video_frame = target->QueueFrame.avframe_work[AVMEDIA_TYPE_VIDEO];
 	if (SDL_Init(SDL_INIT_VIDEO)) throw "SDL_init error";
 	if (!target->QueueFrame.flush_frame(AVMEDIA_TYPE_VIDEO))throw "get_frame error";
+
 	sdl_win = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, video_frame->width, video_frame->height, SDL_WINDOW_RESIZABLE);
 	if (sdl_win == nullptr) throw "windows create error";
 
@@ -115,7 +116,7 @@ void LearnSDL::InitVideo(const char* title)
 	sdl_texture = SDL_CreateTexture(sdl_renderer, a->second, SDL_TEXTUREACCESS_STREAMING, video_frame->width, video_frame->height);
 	if (sdl_texture == nullptr) throw "texture create failed";
 
-
+	
 
 
 

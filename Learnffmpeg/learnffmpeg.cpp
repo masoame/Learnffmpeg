@@ -79,6 +79,8 @@ LearnVideo::RESULT LearnVideo::sample_planner_to_packed(const AVFrame* avf, uint
 	return SUCCESS;
 }
 
+
+
 LearnVideo::RESULT LearnVideo::init_sws(const AVFrame* avf, const AVPixelFormat dstFormat, const int dstW, const int dstH)
 {
 	if (dstW == 0 || dstH == 0)

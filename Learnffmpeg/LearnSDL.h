@@ -3,7 +3,9 @@
 #include"learnffmpeg.h"
 namespace LearnSDL
 {
-	using AutoSDL_WindowPtr = AutoPtr<SDL_Window, Functor<SDL_DestroyWindow>, false>;
+	using AutoWindowPtr = AutoPtr<SDL_Window, Functor<SDL_DestroyWindow>, false>;
+	using AutoRendererPtr = AutoPtr<SDL_Window, Functor<SDL_DestroyRenderer>, false>;
+	using AutoTexturePtr = AutoPtr<SDL_Window, Functor<SDL_DestroyTexture>, false>;
 
 	//存储采样的内存大小
 	constexpr int sample_buf_size = 1024 * 1024 * 8;

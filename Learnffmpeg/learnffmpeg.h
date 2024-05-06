@@ -19,12 +19,14 @@ public:
 		UNNEED_SWR
 	};
 
-
+	//构造函数
 	explicit LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
 	~LearnVideo() {};
 
+	//打开流
 	RESULT open(const char* url, const AVInputFormat* fmt = nullptr, AVDictionary** options = nullptr);
 
+	//初始化您编解码器
 	RESULT init_decode();
 	RESULT init_encode(const enum AVCodecID encodeid, AVFrame* frame);
 
