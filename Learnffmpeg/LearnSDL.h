@@ -3,6 +3,8 @@
 #include"learnffmpeg.h"
 namespace LearnSDL
 {
+	using AutoSDL_WindowPtr = AutoPtr<SDL_Window, Functor<SDL_DestroyWindow>, false>;
+
 	//存储采样的内存大小
 	constexpr int sample_buf_size = 1024 * 1024 * 8;
 
@@ -13,6 +15,8 @@ namespace LearnSDL
 
 	//音频对象
 	extern LearnVideo* target;
+
+
 	//缓存区
 	extern Uint8* audio_buf;
 	//工作指针
@@ -23,19 +27,23 @@ namespace LearnSDL
 	extern int audio_buflen;
 	//原始帧是否为planner格式
 	extern bool is_planner;
+
 	//视频句柄
 	extern SDL_Window* sdl_win;
 	//渲染器
 	extern SDL_Renderer* sdl_renderer;
+	//纹理
+	extern SDL_Texture* sdl_texture;
 
 	//绑定音频对象
 	inline void bind(LearnVideo* in) noexcept { target = in; }
 
 	//默认回调函数
 	extern void SDLCALL default_callback(void* userdata, Uint8* stream, int len) noexcept;
-
 	//初始化音频播放环境
 	extern void InitAudio(SDL_AudioCallback callback = default_callback);
+
+
 	//初始化视频环境
 	extern void InitVideo(const char* title);
 

@@ -89,13 +89,7 @@ private:
 	std::unique_ptr<T, DeletePtr> _ptr;
 };
 
-using AutoAVPacketPtr = AutoPtr<AVPacket, Functor<av_packet_free>, true>;
-using AutoAVCodecContextPtr = AutoPtr<AVCodecContext, Functor<avcodec_free_context>, true>;
-using AutoAVFormatContextPtr = AutoPtr<AVFormatContext, Functor<avformat_free_context>, false>;
-using AutoSwsContextPtr = AutoPtr<SwsContext, Functor<sws_freeContext>, false>;
-using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>, true>;
 
-using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
 
 
 

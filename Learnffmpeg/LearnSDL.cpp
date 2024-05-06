@@ -16,7 +16,7 @@ AUDIO_F32SYS,
 -1
 };
 
-const std::map<AVPixelFormat, SDL_PixelFormatEnum> LearnSDL::map_video_format
+consteval const std::map<AVPixelFormat, SDL_PixelFormatEnum> LearnSDL::map_video_format
 {
 	{AV_PIX_FMT_YUV444P,SDL_PIXELFORMAT_IYUV},
 	{AV_PIX_FMT_YUYV422,SDL_PIXELFORMAT_YUY2},
@@ -24,8 +24,11 @@ const std::map<AVPixelFormat, SDL_PixelFormatEnum> LearnSDL::map_video_format
 	{AV_PIX_FMT_NV21,SDL_PIXELFORMAT_NV21}
 };
 
+
+
 SDL_Window* LearnSDL::sdl_win = nullptr;
 SDL_Renderer* LearnSDL::sdl_renderer = nullptr;
+SDL_Texture* LearnSDL::sdl_texture = nullptr;
 
 Uint8* LearnSDL::audio_buf = new Uint8[sample_buf_size];
 LearnVideo* LearnSDL::target = nullptr;
@@ -36,7 +39,7 @@ bool LearnSDL::is_planner = false;
 
 bool LearnSDL::format_frame() noexcept
 {
-	AutoAVFramePtr& audio_frame = target->QueueFrame.avframe_work[AVMEDIA_TYPE_AUDIO];
+	LearnVideo::AutoAVFramePtr& audio_frame = target->QueueFrame.avframe_work[AVMEDIA_TYPE_AUDIO];
 
 	if (audio_frame == nullptr) return false;
 	if (is_planner)
@@ -72,7 +75,7 @@ void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)n
 }
 void LearnSDL::InitAudio(SDL_AudioCallback callback)
 {
-	AutoAVFramePtr& audio_frame = target->QueueFrame.avframe_work[AVMEDIA_TYPE_AUDIO];
+	LearnVideo::AutoAVFramePtr& audio_frame = target->QueueFrame.avframe_work[AVMEDIA_TYPE_AUDIO];
 
 	if (SDL_Init(SDL_INIT_AUDIO))throw "SDL_init error";
 
@@ -99,7 +102,7 @@ void LearnSDL::InitAudio(SDL_AudioCallback callback)
 
 void LearnSDL::InitVideo(const char* title)
 {
-	AutoAVFramePtr& video_frame = target->QueueFrame.avframe_work[AVMEDIA_TYPE_VIDEO];
+	LearnVideo::AutoAVFramePtr& video_frame = target->QueueFrame.avframe_work[AVMEDIA_TYPE_VIDEO];
 	if (SDL_Init(SDL_INIT_VIDEO)) throw "SDL_init error";
 	if (!target->QueueFrame.flush_frame(AVMEDIA_TYPE_VIDEO))throw "get_frame error";
 	sdl_win = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, video_frame->width, video_frame->height, SDL_WINDOW_RESIZABLE);
@@ -109,7 +112,8 @@ void LearnSDL::InitVideo(const char* title)
 	if (sdl_renderer == nullptr)throw "Renderer create failed";
 
 	const auto a = map_video_format.find((AVPixelFormat)video_frame->format);
-	SDL_CreateTexture(sdl_renderer, a->second, SDL_TEXTUREACCESS_STREAMING, video_frame->width, video_frame->height);
+	sdl_texture = SDL_CreateTexture(sdl_renderer, a->second, SDL_TEXTUREACCESS_STREAMING, video_frame->width, video_frame->height);
+	if (sdl_texture == nullptr) throw "texture create failed";
 
 
 
