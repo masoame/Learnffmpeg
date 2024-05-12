@@ -23,8 +23,6 @@ consteval const std::map<AVPixelFormat, SDL_PixelFormatEnum> LearnSDL::map_video
 	{AV_PIX_FMT_NV21,SDL_PIXELFORMAT_NV21}
 };
 
-
-
 SDL_Window* LearnSDL::sdl_win = nullptr;
 SDL_Renderer* LearnSDL::sdl_renderer = nullptr;
 SDL_Texture* LearnSDL::sdl_texture = nullptr;
@@ -38,7 +36,7 @@ bool LearnSDL::is_planner = false;
 
 bool LearnSDL::format_frame() noexcept
 {
-	LearnVideo::AutoAVFramePtr& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO];
+	LearnVideo::AutoAVFramePtr& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO].first;
 
 	if (audio_frame == nullptr) return false;
 	if (is_planner)
@@ -74,7 +72,7 @@ void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)n
 }
 void LearnSDL::InitAudio(SDL_AudioCallback callback)
 {
-	LearnVideo::AutoAVFramePtr& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO];
+	LearnVideo::AutoAVFramePtr& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO].first;
 
 	if (SDL_Init(SDL_INIT_AUDIO))throw "SDL_init error";
 
@@ -101,7 +99,7 @@ void LearnSDL::InitAudio(SDL_AudioCallback callback)
 
 void LearnSDL::InitVideo(const char* title)
 {
-	LearnVideo::AutoAVFramePtr& video_frame = target->avframe_work[AVMEDIA_TYPE_VIDEO];
+	LearnVideo::AutoAVFramePtr& video_frame = target->avframe_work[AVMEDIA_TYPE_VIDEO].first;
 	if (SDL_Init(SDL_INIT_VIDEO)) throw "SDL_init error";
 	if (!target->flush_frame(AVMEDIA_TYPE_VIDEO))throw "get_frame error";
 
@@ -114,4 +112,21 @@ void LearnSDL::InitVideo(const char* title)
 	const auto format = map_video_format.find(static_cast<AVPixelFormat>(video_frame->format));
 	sdl_texture = SDL_CreateTexture(sdl_renderer, format->second, SDL_TEXTUREACCESS_STREAMING, video_frame->width, video_frame->height);
 	if (sdl_texture == nullptr) throw "texture create failed";
+
+
+}
+
+char* LearnSDL::convert_frame(AVFrame* work) noexcept
+{
+	if (work == nullptr)return nullptr;
+
+	char* buf = new char[work->width * work->height * 1.5];
+	char* temp = buf;
+	memcpy(temp, work->data[0], work->linesize[0] * work->height);
+	temp += work->linesize[0] * work->height;
+	memcpy(temp, work->data[1], work->linesize[1] * work->height / 2);
+	temp += work->linesize[1] * work->height / 2;
+	memcpy(temp, work->data[2], work->linesize[2] * work->height / 2);
+
+	return buf;
 }

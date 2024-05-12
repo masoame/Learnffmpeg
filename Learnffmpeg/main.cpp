@@ -14,6 +14,10 @@ int main(int argc, char* args[])
 	LearnVideo::RESULT err = LV.open(path.c_str());
 	if (err != LearnVideo::SUCCESS) return -1;
 	err = LV.init_decode();
+
+    LV.insert_callback[AVMEDIA_TYPE_VIDEO] = LearnSDL::convert_frame;
+
+
 	if (err != LearnVideo::SUCCESS) return -1;
 	LV.start_decode_thread();
 
@@ -21,25 +25,15 @@ int main(int argc, char* args[])
 	LearnSDL::InitAudio();
 	LearnSDL::InitVideo("test");
 
-    LearnVideo::AutoAVFramePtr& work = LV.avframe_work[AVMEDIA_TYPE_VIDEO];
-    char* buf = new char[work->width * work->height * 3 * 2];
+    auto& work = LV.avframe_work[AVMEDIA_TYPE_VIDEO];
 
     Sleep(1000);
 
 
     SDL_PauseAudio(0);
-	while (work!=nullptr)
+    while (work.first != nullptr)
 	{
-
-        char* temp = buf;
-        memcpy(buf, work->data[0], work->linesize[0] * work->height);
-        buf += work->linesize[0] * work->height;
-        memcpy(buf, work->data[1], work->linesize[1] * work->height / 2);
-        buf += work->linesize[1] * work->height/2;
-        memcpy(buf, work->data[2], work->linesize[2] * work->height / 2);
-        buf=temp;
-  
-        if (SDL_UpdateTexture(LearnSDL::sdl_texture, NULL, buf, work->width))
+        if (SDL_UpdateTexture(LearnSDL::sdl_texture, NULL,work.second.get(), work.first->width))
         {
             std::cout << SDL_GetError() << std::endl;
             return -1;
@@ -56,8 +50,8 @@ int main(int argc, char* args[])
         SDL_Rect rect;
         rect.x = 0;
         rect.y = 0;
-        rect.w = work->width;
-        rect.h = work->height;
+        rect.w = work.first->width;
+        rect.h = work.first->height;
         if (SDL_RenderCopy(LearnSDL::sdl_renderer, LearnSDL::sdl_texture, NULL, &rect))
         {
             std::cout << SDL_GetError() << std::endl;
@@ -69,8 +63,6 @@ int main(int argc, char* args[])
         LV.flush_frame(AVMEDIA_TYPE_VIDEO);
         Sleep(30);
 	}
-
-	
 	system("pause");
 	return 0;
 }

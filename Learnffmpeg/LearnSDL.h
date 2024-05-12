@@ -22,7 +22,6 @@ namespace LearnSDL
 
 	//缓存区
 	extern Uint8* audio_buf;
-	//工作指针
 	extern Uint8* audio_pos;
 	//采样点大小
 	extern unsigned char bit_size;
@@ -40,6 +39,8 @@ namespace LearnSDL
 	//帧缓冲区
 	extern char* video_buf;
 
+
+
 	//------------------------------------------------------------------
 
 	//绑定音频对象
@@ -50,10 +51,12 @@ namespace LearnSDL
 	//初始化音频播放环境
 	extern void InitAudio(SDL_AudioCallback callback = default_callback);
 
-
 	//初始化视频环境
 	extern void InitVideo(const char* title);
 
+	//转化帧
+	char* convert_frame(AVFrame* work) noexcept;
+
 	//对帧进行重采样帧
-	extern bool format_frame()  noexcept;
+	extern bool format_frame() noexcept;
 };

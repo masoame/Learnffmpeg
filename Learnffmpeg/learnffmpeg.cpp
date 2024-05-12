@@ -1,24 +1,5 @@
 #include"learnffmpeg.h"
 
-//×ª»¯map
-const AVSampleFormat LearnVideo::map_palnner_to_packad[13]{
-	AV_SAMPLE_FMT_NONE,
-	AV_SAMPLE_FMT_NONE,
-	AV_SAMPLE_FMT_NONE,
-	AV_SAMPLE_FMT_NONE,
-	AV_SAMPLE_FMT_NONE,
-	AV_SAMPLE_FMT_U8,
-	AV_SAMPLE_FMT_S16,
-	AV_SAMPLE_FMT_S32,
-	AV_SAMPLE_FMT_FLT,
-	AV_SAMPLE_FMT_DBL,
-	AV_SAMPLE_FMT_NONE,
-	AV_SAMPLE_FMT_S64,
-	AV_SAMPLE_FMT_NONE
-};
-
-const unsigned char LearnVideo::sample_bit_size[13]{ 1,2,4,4,8,1,2,4,4,8,8,8,-1 };
-
 LearnVideo::RESULT LearnVideo::open(const char* url, const AVInputFormat* fmt, AVDictionary** options)
 {
 	if (avformat_open_input(&avfctx, url, fmt, options)) return OPEN_ERROR;
@@ -53,7 +34,7 @@ LearnVideo::RESULT LearnVideo::init_decode()
 
 LearnVideo::RESULT LearnVideo::init_swr()
 {
-	AutoAVFramePtr& frame = avframe_work[AVMEDIA_TYPE_AUDIO];
+	AutoAVFramePtr& frame = avframe_work[AVMEDIA_TYPE_AUDIO].first;
 
 	if (frame == nullptr)return ARGS_ERROR;
 	if (frame->format == AV_SAMPLE_FMT_NONE || map_palnner_to_packad[frame->format] == AV_SAMPLE_FMT_NONE)return UNNEED_SWR;
@@ -73,7 +54,7 @@ LearnVideo::RESULT LearnVideo::init_swr()
 
 LearnVideo::RESULT LearnVideo::sample_planner_to_packed(uint8_t** data, int* linesize)
 {
-	AutoAVFramePtr& frame = avframe_work[AVMEDIA_TYPE_AUDIO];
+	AutoAVFramePtr& frame = avframe_work[AVMEDIA_TYPE_AUDIO].first;
 
 	*linesize = swr_convert(swr_ctx, data, *linesize, frame->data, frame->nb_samples);
 	if (*linesize < 0)return ARGS_ERROR;
@@ -85,7 +66,7 @@ LearnVideo::RESULT LearnVideo::sample_planner_to_packed(uint8_t** data, int* lin
 
 LearnVideo::RESULT LearnVideo::init_sws(const AVPixelFormat dstFormat, const int dstW, const int dstH)
 {
-	LearnVideo::AutoAVFramePtr& work = avframe_work[AVMEDIA_TYPE_VIDEO];
+	LearnVideo::AutoAVFramePtr& work = avframe_work[AVMEDIA_TYPE_VIDEO].first;
 
 	if (dstW == 0 || dstH == 0)
 		sws_ctx = sws_getContext(work->width, work->height, (AVPixelFormat)work->format, work->width, work->height, dstFormat, SWS_FAST_BILINEAR, nullptr, nullptr, 0);
@@ -97,11 +78,39 @@ LearnVideo::RESULT LearnVideo::init_sws(const AVPixelFormat dstFormat, const int
 
 LearnVideo::RESULT LearnVideo::yuv_to_rgb_packed(uint8_t** data, int* linesize)
 {
-	AutoAVFramePtr &frame =  avframe_work[AVMEDIA_TYPE_VIDEO];
+	AutoAVFramePtr &frame =  avframe_work[AVMEDIA_TYPE_VIDEO].first;
 
 	sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, data, linesize);
 	return RESULT();
 }
+
+inline void LearnVideo::insert_queue(AVMediaType index, AutoAVFramePtr&& avf) noexcept
+{
+	char* userdata = nullptr;
+	if (insert_callback[index] != nullptr) userdata = insert_callback[index](avf);
+
+	while (size[index] == 12) Sleep(1);
+	FrameQueue[index].push({ avf.release(),userdata });
+	avf = av_frame_alloc();
+
+	size[index]++;
+}
+
+bool LearnVideo::flush_frame(AVMediaType index) noexcept
+{
+	while (FrameQueue[index].empty()) Sleep(1);
+	size[index]--;
+
+	framedata_type temp;
+	FrameQueue[index].try_pop(temp);
+
+	avframe_work[index].first.reset(temp.first);
+	avframe_work[index].second.reset(temp.second);
+
+	if (avframe_work[index].first == nullptr)return false;
+	return true;
+}
+
 
 LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 {
@@ -117,7 +126,6 @@ LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 
 				AVMediaType index = AVStreamIndex[avp->stream_index];
 				if (index == AVMEDIA_TYPE_VIDEO || index == AVMEDIA_TYPE_AUDIO)
-				//if (index == AVMEDIA_TYPE_VIDEO)
 				{
 					if (err == AVERROR_EOF)
 					{
@@ -150,9 +158,4 @@ LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 			}
 		}).detach();
 		return SUCCESS;
-}
-
-LearnVideo::RESULT LearnVideo::init_encode(const enum AVCodecID encodeid, AVFrame* frame)
-{
-	return SUCCESS;
 }

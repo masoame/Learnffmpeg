@@ -90,6 +90,21 @@ private:
 };
 
 
+template<class T>
+class Circular_Queue
+{
+	using Type = std::remove_reference<T>::type;
 
+
+	explicit Circular_Queue(size_t size) :_front(0), _rear(0), _size(size) { static_assert(size >= 2); _Arr.reset(new Type[size]); }
+
+	std::unique_ptr<Type[]> _Arr;
+	const size_t _size;
+
+	std::atomic<size_t> _front, _rear;
+
+	void push(const T& target) const { while (_front == ((_rear + 1) % _size)) Sleep(1); _Arr[++_rear % _size] = target; }
+	T pop() { while (_rear == _front) Sleep(1); return _Arr[_front++]; }
+};
 
 
