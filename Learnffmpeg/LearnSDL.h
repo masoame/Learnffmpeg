@@ -55,7 +55,7 @@ namespace LearnSDL
 	extern void InitVideo(const char* title);
 
 	//转化帧
-	char* convert_frame(AVFrame* work) noexcept;
+	void convert_frame(AVFrame* work,char* &buf) noexcept;
 
 	//对帧进行重采样帧
 	extern bool format_frame() noexcept;

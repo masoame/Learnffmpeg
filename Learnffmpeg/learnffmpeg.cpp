@@ -86,26 +86,22 @@ LearnVideo::RESULT LearnVideo::yuv_to_rgb_packed(uint8_t** data, int* linesize)
 
 inline void LearnVideo::insert_queue(AVMediaType index, AutoAVFramePtr&& avf) noexcept
 {
-	char* userdata = nullptr;
-	if (insert_callback[index] != nullptr) userdata = insert_callback[index](avf);
+	char* userdata = FrameQueue[index].rear().second.release();
 
-	while (size[index] == 12) Sleep(1);
-	FrameQueue[index].push({ avf.release(),userdata });
+	if (insert_callback[index] != nullptr) insert_callback[index](avf, userdata);
+
+	FrameQueue[index].push({ avf.release(),std::unique_ptr<char[]>(userdata)});
+
 	avf = av_frame_alloc();
 
-	size[index]++;
 }
 
 bool LearnVideo::flush_frame(AVMediaType index) noexcept
 {
-	while (FrameQueue[index].empty()) Sleep(1);
-	size[index]--;
+	framedata_type& temp = FrameQueue[index].pop();
 
-	framedata_type temp;
-	FrameQueue[index].try_pop(temp);
-
-	avframe_work[index].first.reset(temp.first);
-	avframe_work[index].second.reset(temp.second);
+	avframe_work[index].first.reset(temp.first.release());
+	avframe_work[index].second = temp.second.get();
 
 	if (avframe_work[index].first == nullptr)return false;
 	return true;

@@ -13,7 +13,7 @@ public:
 	using AutoSwrContextPtr = AutoPtr<SwrContext, Functor<swr_free>, true>;
 	using AutoAVFramePtr = AutoPtr<AVFrame, Functor<av_frame_free>, true>;
 
-	using insert_callback_type = char* (*)(AVFrame*) noexcept;
+	using insert_callback_type = void (*)(AVFrame*, char*& buf) noexcept;
 
 	//错误枚举
 	enum RESULT
@@ -94,16 +94,14 @@ private:
 	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 	// AVStreamIndex[流的索引] == 流类型
 	AVMediaType AVStreamIndex[6]{ AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN,AVMEDIA_TYPE_UNKNOWN };
-	//各个队列大小
-	std::atomic_ushort size[6];
 
 	//并发队列
-	using framedata_type = std::pair<AVFrame*, char*>;
-	using auto_framedata_type = std::pair<AutoAVFramePtr, std::unique_ptr<char[]>>;
+	using framedata_type = std::pair<AutoAVFramePtr, std::unique_ptr<char[]>>;
+	using auto_framedata_type = std::pair<AutoAVFramePtr, char*>;
 
 
 
-	Concurrency::concurrent_queue<framedata_type> FrameQueue[6];
+	Circular_Queue<framedata_type,4> FrameQueue[6];
 public:
 	auto_framedata_type avframe_work[6];
 

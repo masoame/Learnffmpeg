@@ -103,7 +103,7 @@ void LearnSDL::InitVideo(const char* title)
 	if (SDL_Init(SDL_INIT_VIDEO)) throw "SDL_init error";
 	if (!target->flush_frame(AVMEDIA_TYPE_VIDEO))throw "get_frame error";
 
-	sdl_win = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, video_frame->width, video_frame->height, SDL_WINDOW_RESIZABLE);
+	sdl_win = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, video_frame->width, video_frame->height, SDL_WINDOW_FULLSCREEN);
 	if (sdl_win == nullptr) throw "windows create error";
 
 	sdl_renderer = SDL_CreateRenderer(sdl_win, -1, 0);
@@ -116,17 +116,15 @@ void LearnSDL::InitVideo(const char* title)
 
 }
 
-char* LearnSDL::convert_frame(AVFrame* work) noexcept
+void LearnSDL::convert_frame(AVFrame* work,char* &buf) noexcept
 {
-	if (work == nullptr)return nullptr;
+	if (work == nullptr)return;
+	if (buf == nullptr)buf = new char[work->width * work->height * 1.5];
 
-	char* buf = new char[work->width * work->height * 1.5];
 	char* temp = buf;
 	memcpy(temp, work->data[0], work->linesize[0] * work->height);
 	temp += work->linesize[0] * work->height;
 	memcpy(temp, work->data[1], work->linesize[1] * work->height / 2);
 	temp += work->linesize[1] * work->height / 2;
 	memcpy(temp, work->data[2], work->linesize[2] * work->height / 2);
-
-	return buf;
 }

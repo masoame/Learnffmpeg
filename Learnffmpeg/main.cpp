@@ -33,7 +33,7 @@ int main(int argc, char* args[])
     SDL_PauseAudio(0);
     while (work.first != nullptr)
 	{
-        if (SDL_UpdateTexture(LearnSDL::sdl_texture, NULL,work.second.get(), work.first->width))
+        if (SDL_UpdateTexture(LearnSDL::sdl_texture, NULL,work.second, work.first->width))
         {
             std::cout << SDL_GetError() << std::endl;
             return -1;

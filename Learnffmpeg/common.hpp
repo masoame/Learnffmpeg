@@ -59,7 +59,7 @@ struct AutoPtr
 	/*
 	* ÷ÿ‘ÿ∏≥÷µ∑˚∫≈
 	*/
-	void operator=(T* ptr)noexcept { _ptr.reset(ptr); }
+	void operator=(T* ptr) noexcept { _ptr.reset(ptr); }
 	void operator=(AutoPtr&& Autoptr) noexcept { _ptr.reset(Autoptr.release()); }
 
 	/*
@@ -90,21 +90,67 @@ private:
 };
 
 
-template<class T>
+#define delay Sleep(1);
+template<class _T, unsigned char _bit_number = 8>
 class Circular_Queue
 {
-	using Type = std::remove_reference<T>::type;
+	static_assert(_bit_number > 0 && _bit_number <= 64);
+	using _Type = std::remove_reference<_T>::type;
+
+	constexpr static unsigned long long _mask = ~((~0) << _bit_number);
+
+public:
+	explicit Circular_Queue() :_front(0), _rear(0) { _Arr.reset(new _Type[_mask + 1]); }
 
 
-	explicit Circular_Queue(size_t size) :_front(0), _rear(0), _size(size) { static_assert(size >= 2); _Arr.reset(new Type[size]); }
+	void push(_Type&& target) noexcept
+	{
+		while (isfull()) { delay }
+		_Arr[_rear & _mask] = std::move(target);
+		++_rear;
+	}
 
-	std::unique_ptr<Type[]> _Arr;
-	const size_t _size;
+	void push(const _Type& target) noexcept
+	{
+		while (isfull()) { delay }
+		_Arr[_rear & _mask] = target;
+		++_rear;
+	}
 
+	_Type& pop() noexcept
+	{
+		while (empty()) { delay }
+		_front++;
+		return _Arr[(_front - 1) & _mask];
+
+	}
+
+	_Type& front()
+	{
+		while (empty()) { delay }
+		return _Arr[_front & _mask];
+	}
+
+	//rear no value 
+	_Type& rear()
+	{
+		while (isfull()) { delay }
+		return _Arr[_rear & _mask];
+	}
+
+
+	bool isfull() noexcept
+	{
+		if (((_rear + 1) & _mask) == (_front & _mask))return true;
+		return false;
+	}
+	bool empty() noexcept
+	{
+		if ((_rear & _mask) == (_front & _mask)) return true;
+		return false;
+	}
+private:
+	std::unique_ptr<_Type[]> _Arr;
 	std::atomic<size_t> _front, _rear;
-
-	void push(const T& target) const { while (_front == ((_rear + 1) % _size)) Sleep(1); _Arr[++_rear % _size] = target; }
-	T pop() { while (_rear == _front) Sleep(1); return _Arr[_front++]; }
 };
-
-
+#undef delay
