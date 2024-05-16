@@ -39,9 +39,13 @@ void LearnSDL::InitPlayer(LearnVideo& rely, const char* WindowName, SDL_AudioCal
 	target = &rely;
 	target->init_decode();
 	target->insert_callback[AVMEDIA_TYPE_VIDEO] = convert_video_frame;
+	target->insert_callback[AVMEDIA_TYPE_AUDIO] = convert_audio_frame;
+	InitAudio(callback);
+
+
 	target->start_decode_thread();
 
-	InitAudio(callback);
+
 	InitVideo(WindowName);
 }
 
@@ -96,48 +100,25 @@ void LearnSDL::convert_audio_frame(AVFrame* work, char*& buf) noexcept
 {
 	if (work == nullptr)return;
 	if (buf == nullptr)buf = new char[work->linesize[0]];
-
-	LearnVideo::AutoAVFramePtr& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO].first;
-
 	if (is_planner)
-	{
-		audio_buflen = sample_buf_size;
-		target->sample_planner_to_packed(&audio_buf, &audio_buflen);
-		audio_pos = audio_buf;
-	}
-	else
-	{
-		audio_pos = audio_frame->data[0];
-		audio_buflen = audio_frame->nb_samples;
-	}
-}
-
-bool LearnSDL::format_frame() noexcept
-{
-	LearnVideo::AutoAVFramePtr& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO].first;
-
-	if (audio_frame == nullptr) return false;
-	if (is_planner)
-	{
-		audio_buflen = sample_buf_size;
-		target->sample_planner_to_packed(&audio_buf, &audio_buflen);
-		audio_pos = audio_buf;
-	}
-	else
-	{
-		audio_pos = audio_frame->data[0];
-		audio_buflen = audio_frame->nb_samples;
-	}
-	return true;
+		target->sample_planner_to_packed(work, reinterpret_cast<uint8_t**>(&buf), &work->linesize[0]);
 }
 
 void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)noexcept
 {
+	auto& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO];
 	//Çå¿ÕÁ÷
 	SDL_memset(stream, 0, len);
 	if (audio_buflen == 0)
 	{
-		if (target->flush_frame(AVMEDIA_TYPE_AUDIO) && format_frame()) {}
+		if (target->flush_frame(AVMEDIA_TYPE_AUDIO)) 
+		{
+			if (is_planner)audio_buf = reinterpret_cast<uint8_t*>(audio_frame.second);
+			else audio_buf = audio_frame.first->data[0];
+
+			audio_pos = audio_buf;
+			audio_buflen = audio_frame.first->linesize[0];
+		}
 		else { SDL_CloseAudio(); return; }
 	}
 
@@ -152,26 +133,25 @@ void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)n
 
 void LearnSDL::InitAudio(SDL_AudioCallback callback)
 {
-	LearnVideo::AutoAVFramePtr& audio_frame = target->avframe_work[AVMEDIA_TYPE_AUDIO].first;
+	auto& audio_ctx = target->decode_ctx[AVMEDIA_TYPE_AUDIO];
+	AVSampleFormat format = *audio_ctx->codec->sample_fmts;
 
 	if (SDL_Init(SDL_INIT_AUDIO))throw "SDL_init error";
-
-	if (!target->flush_frame(AVMEDIA_TYPE_AUDIO))throw "get_frame error";
-	if (av_sample_fmt_is_planar((AVSampleFormat)audio_frame->format))
+	
+	if (av_sample_fmt_is_planar(format))
 	{
 		if (target->init_swr() != LearnVideo::SUCCESS) throw "init_swr() failed";
 		is_planner = true;
 	}
-	if (!format_frame())throw "format_frame error";
 
-	if (map_audio_formot[audio_frame->format] == -1) throw "audio format is not suport!!!\n";
+	if (map_audio_formot[format] == -1) throw "audio format is not suport!!!\n";
 
 	SDL_AudioSpec sdl_audio{ 0 };
-	sdl_audio.format = map_audio_formot[audio_frame->format];
-	sdl_audio.channels = audio_frame->ch_layout.nb_channels;
-	sdl_audio.samples = audio_frame->linesize[0] / LearnVideo::sample_bit_size[audio_frame->format] / audio_frame->ch_layout.nb_channels;
+	sdl_audio.format = map_audio_formot[format];
+	sdl_audio.channels = audio_ctx->ch_layout.nb_channels;
+	sdl_audio.samples = audio_ctx->frame_size / audio_ctx->ch_layout.nb_channels;
 	sdl_audio.silence = 0;
-	sdl_audio.freq = audio_frame->sample_rate;
+	sdl_audio.freq = audio_ctx->sample_rate;
 	sdl_audio.callback = callback;
 
 	if (SDL_OpenAudio(&sdl_audio, nullptr)) throw "SDL_OpenAudio failed!!!\n";

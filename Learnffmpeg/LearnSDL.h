@@ -50,6 +50,4 @@ private:
 	static void InitVideo(const char* title);
 	//默认音頻回调函数
 	static void SDLCALL default_callback(void* userdata, Uint8* stream, int len) noexcept;
-	//对帧进行重采样帧
-	static bool format_frame() noexcept;
 };

@@ -55,7 +55,7 @@ public:
 
 	//音频重采样(planner到packed格式转化)
 	RESULT init_swr();
-	RESULT sample_planner_to_packed(uint8_t** data, int* linesize);
+	RESULT sample_planner_to_packed(AVFrame* frame, uint8_t** data, int* linesize);
 
 	//帧格式转化位RGB packed格式
 	RESULT init_sws(const AVPixelFormat dstFormat, const int dstW = 0, const int dstH = 0);
@@ -86,8 +86,7 @@ private:
 	AutoAVFormatContextPtr avfctx;
 	AutoSwrContextPtr swr_ctx;
 	AutoSwsContextPtr sws_ctx;
-	AutoAVCodecContextPtr decode_ctx[2];
-	AutoAVCodecContextPtr encode_ctx[2];
+
 
 	// AVStreamIndex[流的索引] == 流类型
 	AVMediaType AVStreamIndex[6]{ AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN,AVMEDIA_TYPE_UNKNOWN };
@@ -97,14 +96,14 @@ private:
 	using auto_framedata_type = std::pair<AutoAVFramePtr, char*>;
 
 
-	Circular_Queue<framedata_type,4> FrameQueue[6];
+	Circular_Queue<framedata_type,8> FrameQueue[6];
 public:
+
+	AutoAVCodecContextPtr decode_ctx[2];
+	AutoAVCodecContextPtr encode_ctx[2];
+
 	auto_framedata_type avframe_work[6];
-
-
 	//insert_callback[AVMediaType(帧格式)] == 处理函数指针
 	insert_callback_type insert_callback[6]{ 0 };
-
-
 
 };

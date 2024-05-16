@@ -55,10 +55,8 @@ LearnVideo::RESULT LearnVideo::init_swr()
 	return SUCCESS;
 }
 
-LearnVideo::RESULT LearnVideo::sample_planner_to_packed(uint8_t** data, int* linesize)
+LearnVideo::RESULT LearnVideo::sample_planner_to_packed(AVFrame* frame, uint8_t** data, int* linesize)
 {
-	AutoAVFramePtr& frame = avframe_work[AVMEDIA_TYPE_AUDIO].first;
-
 	*linesize = swr_convert(swr_ctx, data, *linesize, frame->data, frame->nb_samples);
 	if (*linesize < 0)return ARGS_ERROR;
 	*linesize *= frame->ch_layout.nb_channels * sample_bit_size[frame->format];
