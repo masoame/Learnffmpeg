@@ -1,6 +1,5 @@
 #pragma once
 #include"common.hpp"
-#include <concurrent_queue.h>
 
 class LearnVideo
 {
@@ -90,8 +89,6 @@ private:
 	AutoAVCodecContextPtr decode_ctx[2];
 	AutoAVCodecContextPtr encode_ctx[2];
 
-	//编码格式
-	const AVCodec* decode_video = nullptr, * decode_audio = nullptr, * encodec = nullptr;
 	// AVStreamIndex[流的索引] == 流类型
 	AVMediaType AVStreamIndex[6]{ AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN,AVMEDIA_TYPE_UNKNOWN };
 
@@ -100,14 +97,13 @@ private:
 	using auto_framedata_type = std::pair<AutoAVFramePtr, char*>;
 
 
-
 	Circular_Queue<framedata_type,4> FrameQueue[6];
 public:
 	auto_framedata_type avframe_work[6];
 
 
 	//insert_callback[AVMediaType(帧格式)] == 处理函数指针
-	insert_callback_type insert_callback[6];
+	insert_callback_type insert_callback[6]{ 0 };
 
 
 

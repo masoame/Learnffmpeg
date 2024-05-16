@@ -21,12 +21,13 @@ LearnVideo::RESULT LearnVideo::init_decode()
 
 	if (!decode_ctx[AVMEDIA_TYPE_VIDEO] || !decode_ctx[AVMEDIA_TYPE_AUDIO]) return ALLOC_ERROR;
 
+	
 	for (int i = 0; i != 6; i++)
 	{
 		if (AVStreamIndex[i] == AVMEDIA_TYPE_UNKNOWN)continue;
 		if (avcodec_parameters_to_context(decode_ctx[AVStreamIndex[i]], avfctx->streams[i]->codecpar) < 0)return ARGS_ERROR;
-		decode_video = avcodec_find_decoder(decode_ctx[AVStreamIndex[i]]->codec_id);
-		if (avcodec_open2(decode_ctx[AVStreamIndex[i]], decode_video, NULL))return OPEN_ERROR;
+		const AVCodec* codec = avcodec_find_decoder(decode_ctx[AVStreamIndex[i]]->codec_id);
+		if (avcodec_open2(decode_ctx[AVStreamIndex[i]], codec, NULL))return OPEN_ERROR;
 	}
 
 	return SUCCESS;
@@ -34,20 +35,22 @@ LearnVideo::RESULT LearnVideo::init_decode()
 
 LearnVideo::RESULT LearnVideo::init_swr()
 {
-	AutoAVFramePtr& frame = avframe_work[AVMEDIA_TYPE_AUDIO].first;
+	AutoAVCodecContextPtr& audio_ctx = decode_ctx[AVMEDIA_TYPE_AUDIO];
 
-	if (frame == nullptr)return ARGS_ERROR;
-	if (frame->format == AV_SAMPLE_FMT_NONE || map_palnner_to_packad[frame->format] == AV_SAMPLE_FMT_NONE)return UNNEED_SWR;
+	AVSampleFormat format = *audio_ctx->codec->sample_fmts;
+
+	if (audio_ctx == nullptr)return ARGS_ERROR;
+	if (format == AV_SAMPLE_FMT_NONE || map_palnner_to_packad[format] == AV_SAMPLE_FMT_NONE)return UNNEED_SWR;
 
 	swr_ctx = swr_alloc();
 	if (!swr_ctx)return ALLOC_ERROR;
 
 	AVChannelLayout out_ch_layout;
-	out_ch_layout.nb_channels = frame->ch_layout.nb_channels;
-	out_ch_layout.order = frame->ch_layout.order;
-	out_ch_layout.u.mask = ~((~0) << frame->ch_layout.nb_channels);
+	out_ch_layout.nb_channels = audio_ctx->ch_layout.nb_channels;
+	out_ch_layout.order = audio_ctx->ch_layout.order;
+	out_ch_layout.u.mask = ~((~0) << audio_ctx->ch_layout.nb_channels);
 	out_ch_layout.opaque = nullptr;
-	if (swr_alloc_set_opts2(&swr_ctx, &out_ch_layout, map_palnner_to_packad[frame->format], frame->sample_rate, &frame->ch_layout, (AVSampleFormat)frame->format, frame->sample_rate, 0, nullptr))return UNKONW_ERROR;
+	if (swr_alloc_set_opts2(&swr_ctx, &out_ch_layout, map_palnner_to_packad[format], audio_ctx->sample_rate, &audio_ctx->ch_layout, (AVSampleFormat)format, audio_ctx->sample_rate, 0, nullptr))return UNKONW_ERROR;
 	if (swr_init(swr_ctx))return INIT_ERROR;
 	return SUCCESS;
 }
