@@ -3,8 +3,6 @@
 #include"learnffmpeg.h"
 class LearnSDL
 {
-	constexpr static const int sample_buf_size = 1024 * 1024 * 8;
-
 	using AutoWindowPtr = AutoPtr<SDL_Window, Functor<SDL_DestroyWindow>, false>;
 	using AutoRendererPtr = AutoPtr<SDL_Window, Functor<SDL_DestroyRenderer>, false>;
 	using AutoTexturePtr = AutoPtr<SDL_Window, Functor<SDL_DestroyTexture>, false>;
@@ -41,7 +39,7 @@ public:
 
 private:
 	//處理畫面帧
-	static void convert_video_frame(AVFrame* work,char* &buf) noexcept;
+	static void convert_video_frame(AVFrame* work, char*& buf) noexcept;
 	//處理音頻幀
 	static void convert_audio_frame(AVFrame* work, char*& buf) noexcept;
 	//初始化音频播放环境

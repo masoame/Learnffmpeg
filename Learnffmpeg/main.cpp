@@ -14,7 +14,8 @@ int main(int argc, char* args[])
 	LearnVideo::RESULT err = LV.open(path.c_str());
 	if (err != LearnVideo::SUCCESS) return -1;
 
-    LearnSDL::InitPlayer(LV, "test");
+	LearnSDL::InitPlayer(LV, "test");
+	//av_seek_frame(LV);
 	LearnSDL::StartPlayer();
 
 	system("pause");

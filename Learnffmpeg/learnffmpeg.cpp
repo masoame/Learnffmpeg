@@ -21,7 +21,6 @@ LearnVideo::RESULT LearnVideo::init_decode()
 
 	if (!decode_ctx[AVMEDIA_TYPE_VIDEO] || !decode_ctx[AVMEDIA_TYPE_AUDIO]) return ALLOC_ERROR;
 
-	
 	for (int i = 0; i != 6; i++)
 	{
 		if (AVStreamIndex[i] == AVMEDIA_TYPE_UNKNOWN)continue;
@@ -63,8 +62,6 @@ LearnVideo::RESULT LearnVideo::sample_planner_to_packed(AVFrame* frame, uint8_t*
 	return SUCCESS;
 }
 
-
-
 LearnVideo::RESULT LearnVideo::init_sws(const AVPixelFormat dstFormat, const int dstW, const int dstH)
 {
 	LearnVideo::AutoAVFramePtr& work = avframe_work[AVMEDIA_TYPE_VIDEO].first;
@@ -79,7 +76,7 @@ LearnVideo::RESULT LearnVideo::init_sws(const AVPixelFormat dstFormat, const int
 
 LearnVideo::RESULT LearnVideo::yuv_to_rgb_packed(uint8_t** data, int* linesize)
 {
-	AutoAVFramePtr &frame =  avframe_work[AVMEDIA_TYPE_VIDEO].first;
+	AutoAVFramePtr& frame = avframe_work[AVMEDIA_TYPE_VIDEO].first;
 
 	sws_scale(sws_ctx, frame->data, frame->linesize, 0, frame->height, data, linesize);
 	return RESULT();
@@ -91,10 +88,9 @@ inline void LearnVideo::insert_queue(AVMediaType index, AutoAVFramePtr&& avf) no
 
 	if (insert_callback[index] != nullptr) insert_callback[index](avf, userdata);
 
-	FrameQueue[index].push({ avf.release(),std::unique_ptr<char[]>(userdata)});
+	FrameQueue[index].push({ avf.release(),std::unique_ptr<char[]>(userdata) });
 
 	avf = av_frame_alloc();
-
 }
 
 bool LearnVideo::flush_frame(AVMediaType index) noexcept
@@ -107,7 +103,6 @@ bool LearnVideo::flush_frame(AVMediaType index) noexcept
 	if (avframe_work[index].first == nullptr)return false;
 	return true;
 }
-
 
 LearnVideo::RESULT LearnVideo::start_decode_thread() noexcept
 {

@@ -89,7 +89,6 @@ private:
 	std::unique_ptr<T, DeletePtr> _ptr;
 };
 
-
 #define delay Sleep(1);
 template<class _T, unsigned char _bit_number = 8>
 class Circular_Queue
@@ -101,7 +100,6 @@ class Circular_Queue
 
 public:
 	explicit Circular_Queue() :_front(0), _rear(0) { _Arr.reset(new _Type[_mask + 1]); }
-
 
 	void push(_Type&& target) noexcept
 	{
@@ -122,7 +120,6 @@ public:
 		while (empty()) { delay }
 		_front++;
 		return _Arr[(_front - 1) & _mask];
-
 	}
 
 	_Type& front()
@@ -131,13 +128,12 @@ public:
 		return _Arr[_front & _mask];
 	}
 
-	//rear no value 
+	//rear no value
 	_Type& rear()
 	{
 		while (isfull()) { delay }
 		return _Arr[_rear & _mask];
 	}
-
 
 	bool isfull() noexcept
 	{

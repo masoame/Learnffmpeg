@@ -42,7 +42,6 @@ public:
 	AV_SAMPLE_FMT_NONE
 	};
 
-
 	//构造函数
 	explicit LearnVideo() :avfctx(avformat_alloc_context()) { if (!avfctx) throw "function error: avformat_alloc_context"; };
 	~LearnVideo() {};
@@ -69,24 +68,22 @@ public:
 	//从队列中取出并刷新工作指针的指向
 	bool flush_frame(AVMediaType index) noexcept;
 
-
 private:
 
 	/*
 	*  各种上下文指针
-	* 
+	*
 	*	格式
 	*	音频重采样
 	*	格式化帧
 	*	解码
 	*	编码
-	* 
+	*
 	*/
 
 	AutoAVFormatContextPtr avfctx;
 	AutoSwrContextPtr swr_ctx;
 	AutoSwsContextPtr sws_ctx;
-
 
 	// AVStreamIndex[流的索引] == 流类型
 	AVMediaType AVStreamIndex[6]{ AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN ,AVMEDIA_TYPE_UNKNOWN,AVMEDIA_TYPE_UNKNOWN };
@@ -95,8 +92,7 @@ private:
 	using framedata_type = std::pair<AutoAVFramePtr, std::unique_ptr<char[]>>;
 	using auto_framedata_type = std::pair<AutoAVFramePtr, char*>;
 
-
-	Circular_Queue<framedata_type,4> FrameQueue[6];
+	Circular_Queue<framedata_type, 4> FrameQueue[6];
 public:
 
 	AutoAVCodecContextPtr decode_ctx[2];
@@ -105,5 +101,4 @@ public:
 	auto_framedata_type avframe_work[6];
 	//insert_callback[AVMediaType(帧格式)] == 处理函数指针
 	insert_callback_type insert_callback[6]{ 0 };
-
 };

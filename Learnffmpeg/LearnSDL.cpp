@@ -28,7 +28,7 @@ SDL_Rect LearnSDL::rect;
 SDL_Renderer* LearnSDL::sdl_renderer = nullptr;
 SDL_Texture* LearnSDL::sdl_texture = nullptr;
 
-Uint8* LearnSDL::audio_buf = new Uint8[sample_buf_size];
+Uint8* LearnSDL::audio_buf = nullptr;
 LearnVideo* LearnSDL::target = nullptr;
 Uint8* LearnSDL::audio_pos = nullptr;
 int LearnSDL::audio_buflen = 0;
@@ -41,16 +41,12 @@ void LearnSDL::InitPlayer(LearnVideo& rely, const char* WindowName, SDL_AudioCal
 	target->insert_callback[AVMEDIA_TYPE_VIDEO] = convert_video_frame;
 	target->insert_callback[AVMEDIA_TYPE_AUDIO] = convert_audio_frame;
 	InitAudio(callback);
-
 	target->start_decode_thread();
-
-
 	InitVideo(WindowName);
 }
 
-void LearnSDL::StartPlayer()
+void LearnSDL::StartPlayer() noexcept
 {
-
 	std::thread([&]
 		{
 			auto& video_ptr = target->avframe_work[AVMEDIA_TYPE_VIDEO];
@@ -72,21 +68,18 @@ void LearnSDL::StartPlayer()
 					std::cout << SDL_GetError() << std::endl;
 					return -1;
 				}
-				
+
 				if (SDL_RenderCopy(LearnSDL::sdl_renderer, LearnSDL::sdl_texture, NULL, &rect))
 				{
 					std::cout << SDL_GetError() << std::endl;
 					return -1;
 				}
-
-				//äÖÈ¾ï@Ê¾²Ù×÷
 				SDL_RenderPresent(LearnSDL::sdl_renderer);
 				target->flush_frame(AVMEDIA_TYPE_VIDEO);
 				Sleep(delay);
 				while (video_ptr.first->pts > audio_ptr.first->pts) {};
 			}
 		}).detach();
-	
 }
 
 void LearnSDL::convert_video_frame(AVFrame* work, char*& buf) noexcept
@@ -117,7 +110,7 @@ void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)n
 	SDL_memset(stream, 0, len);
 	if (audio_buflen == 0)
 	{
-		if (target->flush_frame(AVMEDIA_TYPE_AUDIO)) 
+		if (target->flush_frame(AVMEDIA_TYPE_AUDIO))
 		{
 			if (is_planner)audio_buf = reinterpret_cast<uint8_t*>(audio_frame.second);
 			else audio_buf = audio_frame.first->data[0];
@@ -136,14 +129,13 @@ void SDLCALL LearnSDL::default_callback(void* userdata, Uint8* stream, int len)n
 	return;
 }
 
-
 void LearnSDL::InitAudio(SDL_AudioCallback callback)
 {
 	auto& audio_ctx = target->decode_ctx[AVMEDIA_TYPE_AUDIO];
 	AVSampleFormat format = *audio_ctx->codec->sample_fmts;
 
 	if (SDL_Init(SDL_INIT_AUDIO))throw "SDL_init error";
-	
+
 	if (av_sample_fmt_is_planar(format))
 	{
 		if (target->init_swr() != LearnVideo::SUCCESS) throw "init_swr() failed";
@@ -185,4 +177,3 @@ void LearnSDL::InitVideo(const char* title)
 	rect.w = video_frame->width;
 	rect.h = video_frame->height;
 }
-
