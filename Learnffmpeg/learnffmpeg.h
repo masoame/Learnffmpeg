@@ -96,7 +96,7 @@ private:
 	using auto_framedata_type = std::pair<AutoAVFramePtr, char*>;
 
 
-	Circular_Queue<framedata_type,8> FrameQueue[6];
+	Circular_Queue<framedata_type,4> FrameQueue[6];
 public:
 
 	AutoAVCodecContextPtr decode_ctx[2];

@@ -42,7 +42,6 @@ void LearnSDL::InitPlayer(LearnVideo& rely, const char* WindowName, SDL_AudioCal
 	target->insert_callback[AVMEDIA_TYPE_AUDIO] = convert_audio_frame;
 	InitAudio(callback);
 
-
 	target->start_decode_thread();
 
 
@@ -51,13 +50,19 @@ void LearnSDL::InitPlayer(LearnVideo& rely, const char* WindowName, SDL_AudioCal
 
 void LearnSDL::StartPlayer()
 {
+
 	std::thread([&]
 		{
-			auto& work = target->avframe_work[AVMEDIA_TYPE_VIDEO];
+			auto& video_ptr = target->avframe_work[AVMEDIA_TYPE_VIDEO];
+			auto& audio_ptr = target->avframe_work[AVMEDIA_TYPE_VIDEO];
+			AVRational& framerate = target->decode_ctx[AVMEDIA_TYPE_VIDEO]->framerate;
+			float fps = framerate.num / static_cast<float>(framerate.den);
+			DWORD delay = static_cast<DWORD>(1000 / fps - 1);
+
 			SDL_PauseAudio(0);
-			while (work.first != nullptr)
+			while (video_ptr.first != nullptr)
 			{
-				if (SDL_UpdateTexture(LearnSDL::sdl_texture, NULL, work.second, work.first->width))
+				if (SDL_UpdateTexture(LearnSDL::sdl_texture, NULL, video_ptr.second, video_ptr.first->width))
 				{
 					std::cout << SDL_GetError() << std::endl;
 					return -1;
@@ -77,7 +82,8 @@ void LearnSDL::StartPlayer()
 				//äÖÈ¾ï@Ê¾²Ù×÷
 				SDL_RenderPresent(LearnSDL::sdl_renderer);
 				target->flush_frame(AVMEDIA_TYPE_VIDEO);
-				Sleep(30);
+				Sleep(delay);
+				while (video_ptr.first->pts > audio_ptr.first->pts) {};
 			}
 		}).detach();
 	
@@ -160,6 +166,7 @@ void LearnSDL::InitAudio(SDL_AudioCallback callback)
 void LearnSDL::InitVideo(const char* title)
 {
 	LearnVideo::AutoAVFramePtr& video_frame = target->avframe_work[AVMEDIA_TYPE_VIDEO].first;
+
 	if (SDL_Init(SDL_INIT_VIDEO)) throw "SDL_init error";
 	if (!target->flush_frame(AVMEDIA_TYPE_VIDEO))throw "get_frame error";
 
